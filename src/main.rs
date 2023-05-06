@@ -1,3 +1,6 @@
+mod cpu;
+
 fn main() {
-    println!("Hello, world!");
+    let core = cpu::Cpu::new();
+    core.run();
 }
