@@ -75,23 +75,8 @@ impl Cpu {
         }
     }
 
-    // #[inline]
-    // pub fn load_deferred<M>(&mut self, register: Register) -> M
-    // where
-    //     M: MemoryAcceess,
-    // {
-    //     let address = self
-    //         .registers
-    //         .get::<M>(register, RegisterAddressingMode::RegisterDeferred);
-    //     self.ram.load(address)
-    // }
-
     fn next_opcode(&mut self) -> Word {
-        let src = Source {
-            mode: RegisterAddressingMode::Autoincrement,
-            register: R7,
-        };
-        self.load(src)
+        self.load(Source::pc())
     }
 
     fn execute(&mut self, opcode: Word) {
@@ -176,6 +161,13 @@ impl Source {
         let mode = RegisterAddressingMode::from(opcode & 0o00_70_00 >> 9);
         let register = Register::from(opcode & 0o00_07_00 >> 6);
         Self { mode, register }
+    }
+
+    pub fn pc() -> Self {
+        Self {
+            mode: RegisterAddressingMode::Autoincrement,
+            register: R7,
+        }
     }
 }
 
