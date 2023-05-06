@@ -1,6 +1,7 @@
 use super::*;
 
 pub use byte::Byte;
+pub use word::Address;
 pub use word::Word;
 
 mod byte;
@@ -14,62 +15,47 @@ impl Ram {
         Self([0; 64 * 1024])
     }
 
-    // #[inline]
-    // pub fn load_byte(&self, address: Word) -> Byte {
-    //     Byte(self.0[address.0 as usize])
-    // }
-
-    // #[inline]
-    // pub fn load_word(&self, address: Word) -> Word {
-    //     let lo = address.0 as usize;
-    //     let hi = lo + 1;
-    //     Word(u16::from_le_bytes([self.0[lo], self.0[hi]]))
-    // }
-
     #[inline]
-    pub fn load_range<M>(&self, address: Word) -> &[u8]
+    pub fn load<M>(&self, address: Address<M>) -> M
     where
         M: MemoryAcceess,
     {
-        let addr = address.into();
-        &self.0[addr..(addr + M::SIZE)]
+        println!("Loading {} bytes from {address:?}", M::SIZE);
+        M::from_le_bytes(&self[address])
     }
 
     #[inline]
-    pub fn store_range<M>(&mut self, address: Word, data: M)
+    pub fn store<M>(&mut self, address: Address<M>, data: M)
     where
         M: MemoryAcceess,
     {
-        let addr = address.into();
-        let data = data.as_le_bytes();
-        self.0[addr..(addr + M::SIZE)].copy_from_slice(data);
+        println!("Storing {} bytes to {address:?}", M::SIZE);
+        self[address].copy_from_slice(data.as_le_bytes());
     }
-
-    #[inline]
-    pub fn load<M>(&self, address: Word) -> M
-    where
-        M: MemoryAcceess,
-    {
-        let addr = address.into();
-        println!("Loading {} bytes from {addr}", M::SIZE);
-        let bytes = &self.0[addr..(addr + M::SIZE)];
-        M::from_le_bytes(bytes)
-    }
-
-    // #[inline]
-    // pub fn store<M>(&mut self, address: Word, data: M)
-    // where
-    //     M: MemoryAcceess,
-    // {
-    //     let addr = address.0 as usize;
-    //     println!("Storing {} bytes to {addr}", M::SIZE);
-    //     let bytes = data.to_le_bytes();
-    //     &mut self.0[addr..(addr + M::SIZE)].copy_from_slice(&bytes);
-    // }
 }
 
 impl Default for Ram {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl<M> ops::Index<Address<M>> for Ram
+where
+    M: MemoryAcceess,
+{
+    type Output = [u8];
+
+    fn index(&self, index: Address<M>) -> &Self::Output {
+        &self.0[index.range()]
+    }
+}
+
+impl<M> ops::IndexMut<Address<M>> for Ram
+where
+    M: MemoryAcceess,
+{
+    fn index_mut(&mut self, index: Address<M>) -> &mut Self::Output {
+        &mut self.0[index.range()]
     }
 }

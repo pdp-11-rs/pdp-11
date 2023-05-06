@@ -1,3 +1,6 @@
+use std::marker::PhantomData;
+use std::ops::Range;
+
 use super::*;
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -5,19 +8,42 @@ pub struct Word {
     pub(super) le: [u8; 2],
 }
 
+#[derive(Debug)]
+pub struct Address<M>(Word, PhantomData<M>);
+
+impl<M> Address<M>
+where
+    M: MemoryAcceess,
+{
+    pub fn range(&self) -> Range<usize> {
+        self.0.address_range::<M>()
+    }
+}
+
 impl Word {
     #[inline]
     pub fn as_u16(&self) -> u16 {
         u16::from_le_bytes(self.le)
     }
-}
-// impl ops::Deref for Word {
-//     type Target = u16;
 
-//     fn deref(&self) -> &Self::Target {
-//         &self.0
-//     }
-// }
+    #[inline]
+    pub fn as_usize(&self) -> usize {
+        u16::from_le_bytes(self.le) as usize
+    }
+
+    #[inline]
+    pub fn address_range<M>(&self) -> Range<usize>
+    where
+        M: MemoryAcceess,
+    {
+        let address = self.as_usize();
+        address..address + M::SIZE
+    }
+
+    pub fn address<M>(self) -> Address<M> {
+        Address(self, PhantomData)
+    }
+}
 
 impl From<u16> for Word {
     #[inline]
@@ -30,7 +56,7 @@ impl From<u16> for Word {
 impl From<Word> for u16 {
     #[inline]
     fn from(word: Word) -> Self {
-        Self::from_le_bytes(word.le)
+        word.as_u16()
     }
 }
 
@@ -44,14 +70,13 @@ impl From<Byte> for Word {
 impl From<Word> for usize {
     #[inline]
     fn from(word: Word) -> Self {
-        u16::from_le_bytes(word.le).into()
+        word.as_usize()
     }
 }
 
 impl ops::AddAssign for Word {
     #[inline]
     fn add_assign(&mut self, rhs: Self) {
-        // self.le = (u16::from_le_bytes(self.le) + u16::from_le_bytes(rhs.le)).to_le_bytes();
         self.le = (self.as_u16() + u16::from(rhs)).to_le_bytes();
     }
 }

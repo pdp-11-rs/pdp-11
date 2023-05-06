@@ -95,8 +95,11 @@ impl Cpu {
     }
 
     fn execute(&mut self, opcode: Word) {
+        use Instruction::*;
+
         match dbg!(Instruction::from(opcode)) {
-            Instruction::Mov(src, dst) => self.mov(src, dst),
+            Mov(src, dst) => self.mov(src, dst),
+            Invalid(opcode) => eprintln!("Opcode {opcode:0o} is not supported yet"),
         }
     }
 }
@@ -114,10 +117,8 @@ impl Cpu {
             Register => self.registers.get::<M>(register, mode).into(),
             RegisterDeferred => todo!("load deferred"),
             Autoincrement => {
-                //
-                let address = self.registers.get::<M>(register, mode);
-                let bytes = self.ram.load_range::<M>(address);
-                M::from_le_bytes(bytes)
+                let address = self.registers.get::<M>(register, mode).address();
+                self.ram.load(address)
             }
             AutoincrementDeferred => todo!("load autoincrement deferred"),
             Autodecrement => todo!("load autodecrement"),
@@ -140,8 +141,8 @@ impl Cpu {
                 self.registers.set(register, mode, data);
             }
             RegisterDeferred => {
-                let addr = self.registers.get::<Word>(register, mode);
-                self.ram.store_range(addr, data);
+                let address = self.registers.get::<Word>(register, mode).address();
+                self.ram.store(address, data);
             }
             Autoincrement => todo!("store Autoincrement"),
             AutoincrementDeferred => todo!("store  AutoincrementDeferred"),
@@ -186,7 +187,7 @@ impl Destination {
     }
 }
 
-pub trait MemoryAcceess: Into<Word> + From<Word> {
+pub trait MemoryAcceess: Into<Word> + From<Word> + std::fmt::Debug {
     const SIZE: usize;
     type LittleEndian;
 
