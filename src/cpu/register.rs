@@ -8,8 +8,8 @@ pub enum Register {
     R3,
     R4,
     R5,
-    R6,
-    R7,
+    SP,
+    PC,
 }
 
 impl From<u16> for Register {
@@ -21,10 +21,31 @@ impl From<u16> for Register {
             3 => Self::R3,
             4 => Self::R4,
             5 => Self::R5,
-            6 => Self::R6,
-            7 => Self::R7,
+            6 => Self::SP,
+            7 => Self::PC,
             other => panic!("Invalid register code {other}"),
         }
+    }
+}
+
+impl Register {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            R0 => "R0",
+            R1 => "R1",
+            R2 => "R2",
+            R3 => "R3",
+            R4 => "R4",
+            R5 => "R5",
+            SP => "SP",
+            PC => "PC",
+        }
+    }
+}
+
+impl fmt::Display for Register {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.as_str().fmt(f)
     }
 }
 

@@ -169,7 +169,7 @@ impl Source {
     pub fn pc() -> Self {
         Self {
             mode: RegisterAddressingMode::Autoincrement,
-            register: R7,
+            register: PC,
         }
     }
 }
@@ -184,13 +184,37 @@ impl Destination {
 
 impl fmt::Display for Source {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        todo!()
+        use RegisterAddressingMode::*;
+
+        let Self { mode, register } = self;
+        match mode {
+            Register => register.fmt(f),
+            RegisterDeferred => format!("({register})").fmt(f),
+            Autoincrement => format!("({register})+").fmt(f),
+            AutoincrementDeferred => format!("@({register})+").fmt(f),
+            Autodecrement => format!("-({register})").fmt(f),
+            AutodecrementDeferred => format!("@-({register})").fmt(f),
+            Index => format!("X({register})").fmt(f),
+            IndexDeferred => format!("@X({register})").fmt(f),
+        }
     }
 }
 
 impl fmt::Display for Destination {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        todo!()
+        use RegisterAddressingMode::*;
+
+        let Self { mode, register } = self;
+        match mode {
+            Register => register.fmt(f),
+            RegisterDeferred => format!("({register})").fmt(f),
+            Autoincrement => format!("({register})+").fmt(f),
+            AutoincrementDeferred => format!("@({register})+").fmt(f),
+            Autodecrement => format!("-({register})").fmt(f),
+            AutodecrementDeferred => format!("@-({register})").fmt(f),
+            Index => format!("X({register})").fmt(f),
+            IndexDeferred => format!("@X({register})").fmt(f),
+        }
     }
 }
 
