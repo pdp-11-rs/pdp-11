@@ -7,7 +7,7 @@ pub enum Instruction {
     Reset,
     Mov(Operand, Operand),
     Cmp(Operand, Operand),
-
+    Bit(Operand, Operand),
     Invalid(u16),
 }
 
@@ -24,6 +24,12 @@ impl Instruction {
         Self::Cmp(src, dst)
     }
 
+    fn bit(opcode: u16) -> Self {
+        let src = Operand::from_6_11(opcode);
+        let dst = Operand::from_0_5(opcode);
+        Self::Bit(src, dst)
+    }
+
     fn disassemble(&self) -> String {
         use Instruction::*;
         match self {
@@ -32,6 +38,7 @@ impl Instruction {
             Reset => "RESET".into(),
             Mov(src, dst) => format!("MOV\t{src}, {dst}"),
             Cmp(src, dst) => format!("CMP\t{src}, {dst}"),
+            Bit(src, dst) => format!("BIT\t{src}, {dst}"),
             Invalid(opcode) => format!("Invalid opcode {opcode:#08o}"),
         }
     }
@@ -46,6 +53,7 @@ impl From<Word> for Instruction {
             0o000005 => Reset,
             code @ 0o010000..=0o017777 => Self::mov(code),
             code @ 0o020000..=0o027777 => Self::cmp(code),
+            code @ 0o030000..=0o037777 => Self::bit(code),
             other => Instruction::Invalid(other),
         }
     }

@@ -75,11 +75,20 @@ impl From<Word> for usize {
 }
 
 impl ops::Sub for Word {
-    type Output = Word;
+    type Output = Self;
 
     #[inline]
     fn sub(self, rhs: Self) -> Self::Output {
         (self.as_u16() - rhs.as_u16()).into()
+    }
+}
+
+impl ops::BitAnd for Word {
+    type Output = Self;
+
+    fn bitand(self, rhs: Self) -> Self::Output {
+        let le = [self.le[0] & rhs.le[0], self.le[1] & rhs.le[1]];
+        Self { le }
     }
 }
 

@@ -2,6 +2,7 @@ use std::fmt;
 use std::ops;
 
 pub use insns::Instruction;
+pub use psw::{Flags::*, ProcessorStatusWord};
 pub use ram::Byte;
 pub use ram::Ram;
 pub use ram::Word;
@@ -9,6 +10,7 @@ pub use register::Registers;
 pub use register::{Register, Register::*};
 
 mod insns;
+mod psw;
 mod ram;
 mod register;
 
@@ -20,16 +22,6 @@ pub struct Cpu {
     registers: Registers,
     psw: ProcessorStatusWord,
     ram: Ram,
-}
-
-#[derive(Debug, Default)]
-pub struct ProcessorStatusWord {
-    carry: bool,
-    overflow: bool,
-    zero: bool,
-    negative: bool,
-    trap: bool,
-    ipl: u8,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -96,6 +88,7 @@ impl Cpu {
             Reset => self.reset(),
             Mov(src, dst) => self.mov(src, dst),
             Cmp(src, dst) => self.cmp(src, dst),
+            Bit(src, dst) => self.bit(src, dst),
             Invalid(opcode) => eprintln!("Opcode {opcode:#08o} is not supported yet"),
         }
     }
@@ -112,6 +105,7 @@ impl Cpu {
 
     fn reset(&mut self) {
         *self = Self::default();
+        self.psw.reset();
         let data = Word::from(0o010102);
         let address = Word::from(0).address();
         self.ram.store(address, data);
@@ -120,14 +114,28 @@ impl Cpu {
     pub fn mov(&mut self, src: Operand, dst: Operand) {
         let word = self.load::<Word>(src);
         self.store(dst, word);
+        self.psw[N] = word.is_negative();
+        self.psw[Z] = word.is_zero();
+        self.psw[V] = false;
     }
 
     pub fn cmp(&mut self, src: Operand, dst: Operand) {
         let src = self.load::<Word>(src);
         let dst = self.load::<Word>(dst);
-        let cmp = src - dst;
-        self.psw.zero = cmp.is_zero();
-        self.psw.negative = cmp.is_negative();
+        let out = src - dst;
+        self.psw[Z] = out.is_zero();
+        self.psw[N] = out.is_negative();
+        // self.psw[V] = xxx;
+        // self.psw[C] = xxx;
+    }
+
+    pub fn bit(&mut self, src: Operand, dst: Operand) {
+        let src = self.load::<Word>(src);
+        let dst = self.load::<Word>(dst);
+        let out = src & dst;
+        self.psw[Z] = out.is_zero();
+        self.psw[N] = out.is_negative();
+        self.psw[V] = false;
     }
 }
 
