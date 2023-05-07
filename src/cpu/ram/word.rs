@@ -133,3 +133,18 @@ impl MemoryAcceess for Word {
         &self.le
     }
 }
+
+impl<M> fmt::Display for Address<M>
+where
+    M: MemoryAcceess,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let value = self.0.as_u16();
+        let size = match M::SIZE {
+            1 => "BYTE",
+            2 => "WORD",
+            other => panic!("Unsupported M::SIZE {other}"),
+        };
+        format!("{size} @ {value:#08o}").fmt(f)
+    }
+}

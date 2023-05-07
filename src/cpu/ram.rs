@@ -20,7 +20,7 @@ impl Ram {
     where
         M: MemoryAcceess,
     {
-        println!("Loading {} bytes from {address:?}", M::SIZE);
+        println!("Loading {address}");
         M::from_le_bytes(&self[address])
     }
 

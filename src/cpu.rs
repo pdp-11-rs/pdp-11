@@ -1,3 +1,4 @@
+use std::fmt;
 use std::ops;
 
 pub use insns::Instruction;
@@ -81,10 +82,12 @@ impl Cpu {
 
     fn execute(&mut self, opcode: Word) {
         use Instruction::*;
+        let instruction = Instruction::from(opcode);
+        println!("Executing {instruction}");
 
-        match dbg!(Instruction::from(opcode)) {
+        match instruction {
             Mov(src, dst) => self.mov(src, dst),
-            Invalid(opcode) => eprintln!("Opcode {opcode:0o} is not supported yet"),
+            Invalid(opcode) => eprintln!("Opcode {opcode:#08o} is not supported yet"),
         }
     }
 }
@@ -176,6 +179,18 @@ impl Destination {
         let mode = RegisterAddressingMode::from(opcode & 0o00_00_70 >> 3);
         let register = Register::from(opcode & 0o00_00_07);
         Self { mode, register }
+    }
+}
+
+impl fmt::Display for Source {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        todo!()
+    }
+}
+
+impl fmt::Display for Destination {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        todo!()
     }
 }
 
