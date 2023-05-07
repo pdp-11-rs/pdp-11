@@ -95,22 +95,33 @@ impl Cpu {
 impl Cpu {
     pub fn load<M>(&mut self, src: Source) -> M
     where
-        M: MemoryAcceess + From<Word>,
+        M: MemoryAcceess,
     {
         use RegisterAddressingMode::*;
 
         let Source { mode, register } = src;
 
-        match src.mode {
-            Register => self.registers.get::<M>(register, mode).into(),
-            RegisterDeferred => todo!("load deferred"),
+        match mode {
+            Register => self.registers[register].into(),
+            RegisterDeferred => self.load_indirect(register),
             Autoincrement => {
-                let address = self.registers.get::<M>(register, mode).address();
-                self.ram.load(address)
+                let out = self.load_indirect(register);
+                self.registers.inc::<M>(register);
+                out
             }
-            AutoincrementDeferred => todo!("load autoincrement deferred"),
-            Autodecrement => todo!("load autodecrement"),
-            AutodecrementDeferred => todo!("load autodecrement deferred"),
+            AutoincrementDeferred => {
+                let out = self.load_indirect2(register);
+                self.registers.inc::<Word>(register);
+                out
+            }
+            Autodecrement => {
+                self.registers.dec::<M>(register);
+                self.load_indirect(register)
+            }
+            AutodecrementDeferred => {
+                self.registers.dec::<Word>(register);
+                self.load_indirect2(register)
+            }
             Index => todo!("load index"),
             IndexDeferred => todo!("load index deferred"),
         }
@@ -119,23 +130,35 @@ impl Cpu {
     pub fn store<M>(&mut self, dst: Destination, data: M)
     where
         M: MemoryAcceess,
-        Word: From<M>,
+        // Word: From<M>,
     {
         use RegisterAddressingMode::*;
 
         let Destination { mode, register } = dst;
+
         match mode {
             Register => {
-                self.registers.set(register, mode, data);
+                self.registers[register] = data.into();
             }
             RegisterDeferred => {
-                let address = self.registers.get::<Word>(register, mode).address();
-                self.ram.store(address, data);
+                self.store_indirect(register, data);
             }
-            Autoincrement => todo!("store Autoincrement"),
-            AutoincrementDeferred => todo!("store  AutoincrementDeferred"),
-            Autodecrement => todo!(),
-            AutodecrementDeferred => todo!(),
+            Autoincrement => {
+                self.store_indirect(register, data);
+                self.registers.inc::<M>(register);
+            }
+            AutoincrementDeferred => {
+                self.store_indirect2(register, data);
+                self.registers.inc::<Word>(register);
+            }
+            Autodecrement => {
+                self.registers.dec::<M>(register);
+                self.store_indirect(register, data);
+            }
+            AutodecrementDeferred => {
+                self.registers.dec::<Word>(register);
+                self.store_indirect2(register, data);
+            }
             Index => todo!(),
             IndexDeferred => todo!(),
         };
@@ -144,6 +167,40 @@ impl Cpu {
     pub fn mov(&mut self, src: Source, dst: Destination) {
         let word: Word = self.load(src);
         self.store(dst, word);
+    }
+
+    fn load_indirect<M>(&self, register: Register) -> M
+    where
+        M: MemoryAcceess,
+    {
+        let address = self.registers[register].address();
+        self.ram.load(address)
+    }
+
+    fn load_indirect2<M>(&self, register: Register) -> M
+    where
+        M: MemoryAcceess,
+    {
+        let address = self.registers[register].address();
+        let address = self.ram.load::<Word>(address).address();
+        self.ram.load(address)
+    }
+
+    fn store_indirect<M>(&mut self, register: Register, data: M)
+    where
+        M: MemoryAcceess,
+    {
+        let address = self.registers[register].address();
+        self.ram.store(address, data);
+    }
+
+    fn store_indirect2<M>(&mut self, register: Register, data: M)
+    where
+        M: MemoryAcceess,
+    {
+        let address = self.registers[register].address();
+        let address = self.ram.load::<Word>(address).address();
+        self.ram.store(address, data);
     }
 }
 
@@ -218,12 +275,11 @@ impl fmt::Display for Destination {
     }
 }
 
-pub trait MemoryAcceess: Into<Word> + From<Word> + std::fmt::Debug {
+pub trait MemoryAcceess: Into<Word> + From<Word> + Into<Word> + std::fmt::Debug {
     const SIZE: usize;
     type LittleEndian;
 
     fn from_le_bytes(bytes: &[u8]) -> Self;
     fn to_le(&self) -> Self::LittleEndian;
-    // fn to_le_bytes(&self) -> &[u8];
     fn as_le_bytes(&self) -> &[u8];
 }
