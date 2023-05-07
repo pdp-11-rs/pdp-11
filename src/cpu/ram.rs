@@ -29,7 +29,7 @@ impl Ram {
     where
         M: MemoryAcceess,
     {
-        println!("Storing {} bytes to {address:?}", M::SIZE);
+        println!("Storing {data:08o} {address}");
         self[address].copy_from_slice(data.as_le_bytes());
     }
 }

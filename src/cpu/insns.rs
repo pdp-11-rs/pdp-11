@@ -1,7 +1,12 @@
+use std::borrow::Cow;
+
 use super::*;
 
 #[derive(Debug)]
 pub enum Instruction {
+    Halt,
+    Wait,
+    Reset,
     Mov(Source, Destination),
     Invalid(u16),
 }
@@ -13,18 +18,26 @@ impl Instruction {
         Self::Mov(src, dst)
     }
 
-    fn disassemble(&self) -> String {
+    fn disassemble(&self) -> Cow<'static, str> {
+        use Instruction::*;
         match self {
-            Self::Mov(src, dst) => format!("MOV\t{src}, {dst}"),
-            Self::Invalid(opcode) => format!("Invalid opcode {opcode:#08o}"),
+            Halt => "HALT".into(),
+            Wait => "WAIT".into(),
+            Reset => "RESET".into(),
+            Mov(src, dst) => format!("MOV\t{src}, {dst}").into(),
+            Invalid(opcode) => format!("Invalid opcode {opcode:#08o}").into(),
         }
     }
 }
 
 impl From<Word> for Instruction {
     fn from(opcode: Word) -> Self {
+        use Instruction::*;
         match opcode.as_u16() {
-            code @ 0o01_00_00..=0o01_77_77 => Instruction::mov(code),
+            0o000000 => Halt,
+            0o000001 => Wait,
+            0o000005 => Reset,
+            code @ 0o010000..=0o017777 => Self::mov(code),
             other => Instruction::Invalid(other),
         }
     }

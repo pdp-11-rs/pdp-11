@@ -134,6 +134,18 @@ impl MemoryAcceess for Word {
     }
 }
 
+impl fmt::Display for Word {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.as_u16().fmt(f)
+    }
+}
+
+impl fmt::Octal for Word {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.as_u16().fmt(f)
+    }
+}
+
 impl<M> fmt::Display for Address<M>
 where
     M: MemoryAcceess,

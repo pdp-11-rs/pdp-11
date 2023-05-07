@@ -39,6 +39,18 @@ impl From<Word> for Byte {
     }
 }
 
+impl fmt::Display for Byte {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.as_u8().fmt(f)
+    }
+}
+
+impl fmt::Octal for Byte {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.as_u8().fmt(f)
+    }
+}
+
 impl MemoryAcceess for Byte {
     type LittleEndian = [u8; Self::SIZE];
     const SIZE: usize = 1;
