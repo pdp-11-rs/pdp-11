@@ -1,13 +1,13 @@
 use super::*;
 
 impl Cpu {
-    pub(super) fn load<M>(&mut self, src: Source) -> M
+    pub(super) fn load<M>(&mut self, src: Operand) -> M
     where
         M: MemoryAcceess,
     {
         use RegisterAddressingMode::*;
 
-        let Source { mode, register } = src;
+        let Operand { mode, register } = src;
 
         match mode {
             Register => self.registers[register].into(),
@@ -35,14 +35,13 @@ impl Cpu {
         }
     }
 
-    pub(super) fn store<M>(&mut self, dst: Destination, data: M)
+    pub(super) fn store<M>(&mut self, dst: Operand, data: M)
     where
         M: MemoryAcceess,
-        // Word: From<M>,
     {
         use RegisterAddressingMode::*;
 
-        let Destination { mode, register } = dst;
+        let Operand { mode, register } = dst;
 
         match mode {
             Register => {

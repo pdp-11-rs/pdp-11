@@ -63,7 +63,7 @@ impl From<Word> for u16 {
 impl From<Byte> for Word {
     #[inline]
     fn from(byte: Byte) -> Self {
-        byte.as_u16().into()
+        byte.sign_extend().into()
     }
 }
 
@@ -71,6 +71,15 @@ impl From<Word> for usize {
     #[inline]
     fn from(word: Word) -> Self {
         word.as_usize()
+    }
+}
+
+impl ops::Sub for Word {
+    type Output = Word;
+
+    #[inline]
+    fn sub(self, rhs: Self) -> Self::Output {
+        (self.as_u16() - rhs.as_u16()).into()
     }
 }
 
@@ -131,6 +140,14 @@ impl MemoryAcceess for Word {
 
     fn as_le_bytes(&self) -> &[u8] {
         &self.le
+    }
+
+    fn is_zero(&self) -> bool {
+        self.le[0] == 0 && self.le[1] == 0
+    }
+
+    fn is_negative(&self) -> bool {
+        (self.le[1] as i8).is_negative()
     }
 }
 

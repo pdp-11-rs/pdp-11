@@ -82,7 +82,7 @@ impl Cpu {
     }
 
     fn next_opcode(&mut self) -> Word {
-        self.load(Source::pc())
+        self.load(Operand::pc())
     }
 
     fn execute(&mut self, opcode: Word) {
@@ -95,6 +95,7 @@ impl Cpu {
             Wait => self.wait(),
             Reset => self.reset(),
             Mov(src, dst) => self.mov(src, dst),
+            Cmp(src, dst) => self.cmp(src, dst),
             Invalid(opcode) => eprintln!("Opcode {opcode:#08o} is not supported yet"),
         }
     }
@@ -116,26 +117,35 @@ impl Cpu {
         self.ram.store(address, data);
     }
 
-    pub fn mov(&mut self, src: Source, dst: Destination) {
-        let word: Word = self.load(src);
+    pub fn mov(&mut self, src: Operand, dst: Operand) {
+        let word = self.load::<Word>(src);
         self.store(dst, word);
+    }
+
+    pub fn cmp(&mut self, src: Operand, dst: Operand) {
+        let src = self.load::<Word>(src);
+        let dst = self.load::<Word>(dst);
+        let cmp = src - dst;
+        self.psw.zero = cmp.is_zero();
+        self.psw.negative = cmp.is_negative();
     }
 }
 
 #[derive(Debug)]
-pub struct Source {
+pub struct Operand {
     mode: RegisterAddressingMode,
+
     register: Register,
 }
 
-#[derive(Debug)]
-pub struct Destination {
-    mode: RegisterAddressingMode,
-    register: Register,
-}
+impl Operand {
+    pub fn from_0_5(opcode: u16) -> Self {
+        let mode = RegisterAddressingMode::from((opcode & 0o000070) >> 3);
+        let register = Register::from(opcode & 0o000007);
+        Self { mode, register }
+    }
 
-impl Source {
-    pub fn from_double_operand(opcode: u16) -> Self {
+    pub fn from_6_11(opcode: u16) -> Self {
         let mode = RegisterAddressingMode::from((opcode & 0o007000) >> 9);
         let register = Register::from((opcode & 0o000700) >> 6);
         Self { mode, register }
@@ -149,33 +159,7 @@ impl Source {
     }
 }
 
-impl Destination {
-    pub fn from_double_operand(opcode: u16) -> Self {
-        let mode = RegisterAddressingMode::from((opcode & 0o000070) >> 3);
-        let register = Register::from(opcode & 0o000007);
-        Self { mode, register }
-    }
-}
-
-impl fmt::Display for Source {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use RegisterAddressingMode::*;
-
-        let Self { mode, register } = self;
-        match mode {
-            Register => register.fmt(f),
-            RegisterDeferred => format!("({register})").fmt(f),
-            Autoincrement => format!("({register})+").fmt(f),
-            AutoincrementDeferred => format!("@({register})+").fmt(f),
-            Autodecrement => format!("-({register})").fmt(f),
-            AutodecrementDeferred => format!("@-({register})").fmt(f),
-            Index => format!("X({register})").fmt(f),
-            IndexDeferred => format!("@X({register})").fmt(f),
-        }
-    }
-}
-
-impl fmt::Display for Destination {
+impl fmt::Display for Operand {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use RegisterAddressingMode::*;
 
@@ -200,4 +184,6 @@ pub trait MemoryAcceess: Into<Word> + From<Word> + Into<Word> + fmt::Debug + fmt
     fn from_le_bytes(bytes: &[u8]) -> Self;
     fn to_le(&self) -> Self::LittleEndian;
     fn as_le_bytes(&self) -> &[u8];
+    fn is_zero(&self) -> bool;
+    fn is_negative(&self) -> bool;
 }

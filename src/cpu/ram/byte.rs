@@ -12,6 +12,11 @@ impl Byte {
     }
 
     #[inline]
+    pub fn sign_extend(&self) -> u16 {
+        ((self.le[0] as i8) as i16) as u16
+    }
+
+    #[inline]
     pub fn as_u16(&self) -> u16 {
         self.le[0].into()
     }
@@ -65,5 +70,13 @@ impl MemoryAcceess for Byte {
 
     fn as_le_bytes(&self) -> &[u8] {
         &self.le
+    }
+
+    fn is_zero(&self) -> bool {
+        self.le[0] == 0
+    }
+
+    fn is_negative(&self) -> bool {
+        (self.le[0] as i8).is_negative()
     }
 }
