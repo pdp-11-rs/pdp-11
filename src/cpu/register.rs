@@ -94,4 +94,32 @@ impl Registers {
             IndexDeferred => {}
         }
     }
+
+    pub fn inc<M>(&mut self, register: Register)
+    where
+        M: MemoryAcceess,
+    {
+        self[register] += M::SIZE;
+    }
+
+    pub fn dec<M>(&mut self, register: Register)
+    where
+        M: MemoryAcceess,
+    {
+        self[register] -= M::SIZE;
+    }
+}
+
+impl ops::Index<Register> for Registers {
+    type Output = Word;
+
+    fn index(&self, index: Register) -> &Self::Output {
+        &self.0[index as usize]
+    }
+}
+
+impl ops::IndexMut<Register> for Registers {
+    fn index_mut(&mut self, index: Register) -> &mut Self::Output {
+        &mut self.0[index as usize]
+    }
 }
