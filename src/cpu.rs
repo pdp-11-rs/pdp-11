@@ -9,12 +9,12 @@ pub use ram::Word;
 pub use register::Registers;
 pub use register::{Register, Register::*};
 
+mod bootrom;
+mod impls;
 mod insns;
 mod psw;
 mod ram;
 mod register;
-
-mod impls;
 
 #[derive(Debug, Default)]
 pub struct Cpu {
@@ -80,7 +80,7 @@ impl Cpu {
     fn execute(&mut self, opcode: Word) {
         use Instruction::*;
         let instruction = Instruction::from(opcode);
-        println!("Executing {opcode:#08o} {instruction}");
+        println!("Executing {opcode:#08o}\t{instruction}");
 
         match instruction {
             Halt => self.halt(),
@@ -106,9 +106,10 @@ impl Cpu {
     fn reset(&mut self) {
         *self = Self::default();
         self.psw.reset();
-        let data = Word::from(0o010102);
-        let address = Word::from(0).address();
-        self.ram.store(address, data);
+        self.bootrom();
+        // let data = Word::from(0o010102);
+        // let address = Word::from(0).address();
+        // self.ram.store(address, data);
     }
 
     pub fn mov(&mut self, src: Operand, dst: Operand) {
@@ -139,10 +140,9 @@ impl Cpu {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct Operand {
     mode: RegisterAddressingMode,
-
     register: Register,
 }
 
