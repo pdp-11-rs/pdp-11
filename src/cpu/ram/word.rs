@@ -32,6 +32,11 @@ impl Word {
     }
 
     #[inline]
+    pub fn swab(&mut self) {
+        self.le.swap(0, 1);
+    }
+
+    #[inline]
     pub fn address_range<M>(&self) -> Range<usize>
     where
         M: MemoryAcceess,
@@ -40,6 +45,7 @@ impl Word {
         address..address + M::SIZE
     }
 
+    #[inline]
     pub fn address<M>(self) -> Address<M> {
         Address(self, PhantomData)
     }

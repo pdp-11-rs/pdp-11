@@ -86,6 +86,8 @@ impl Cpu {
             Halt => self.halt(),
             Wait => self.wait(),
             Reset => self.reset(),
+            Jmp(src) => self.jmp(src),
+            Swab(dst) => self.swab(dst),
             Mov(src, dst) => self.mov(src, dst),
             Cmp(src, dst) => self.cmp(src, dst),
             Bit(src, dst) => self.bit(src, dst),
@@ -110,6 +112,14 @@ impl Cpu {
         // let data = Word::from(0o010102);
         // let address = Word::from(0).address();
         // self.ram.store(address, data);
+    }
+
+    fn jmp(&mut self, src: Operand) {
+        todo!()
+    }
+
+    fn swab(&mut self, dst: Operand) {
+        todo!()
     }
 
     pub fn mov(&mut self, src: Operand, dst: Operand) {
