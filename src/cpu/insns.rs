@@ -9,9 +9,11 @@ pub enum Instruction {
     Asl(Operand),
     Jmp(Operand),
     Swab(Operand),
+    Tst(Operand),
     Mov(Operand, Operand),
     Cmp(Operand, Operand),
     Bit(Operand, Operand),
+    Tstb(Operand),
     Invalid(u16),
 }
 
@@ -36,6 +38,11 @@ impl Instruction {
         Self::Swab(dst)
     }
 
+    fn tst(opcode: u16) -> Self {
+        let src = Operand::from_0_5(opcode);
+        Self::Tst(src)
+    }
+
     fn mov(opcode: u16) -> Self {
         let src = Operand::from_6_11(opcode);
         let dst = Operand::from_0_5(opcode);
@@ -54,6 +61,11 @@ impl Instruction {
         Self::Bit(src, dst)
     }
 
+    fn tstb(opcode: u16) -> Self {
+        let src = Operand::from_0_5(opcode);
+        Self::Tstb(src)
+    }
+
     fn disassemble(&self) -> String {
         use Instruction::*;
         match self {
@@ -64,9 +76,11 @@ impl Instruction {
             Asl(operand) => format!("ASL\t{operand}"),
             Jmp(src) => format!("JMP\t{src}"),
             Swab(dst) => format!("SWAB\t{dst}"),
+            Tst(src) => format!("TST\t{src}"),
             Mov(src, dst) => format!("MOV\t{src}, {dst}"),
             Cmp(src, dst) => format!("CMP\t{src}, {dst}"),
             Bit(src, dst) => format!("BIT\t{src}, {dst}"),
+            Tstb(src) => format!("TSTB\t{src}"),
             Invalid(opcode) => format!("Invalid opcode {opcode:#08o}"),
         }
     }
@@ -83,9 +97,11 @@ impl From<Word> for Instruction {
             opcode @ 0o006300..=0o006377 => Self::asl(opcode),
             opcode @ 0o000100..=0o000177 => Self::jmp(opcode),
             opcode @ 0o000300..=0o000377 => Self::swab(opcode),
+            opcode @ 0o005700..=0o005777 => Self::tst(opcode),
             opcode @ 0o010000..=0o017777 => Self::mov(opcode),
             opcode @ 0o020000..=0o027777 => Self::cmp(opcode),
             opcode @ 0o030000..=0o037777 => Self::bit(opcode),
+            opcode @ 0o105700..=0o105777 => Self::tstb(opcode),
             other => Instruction::Invalid(other),
         }
     }

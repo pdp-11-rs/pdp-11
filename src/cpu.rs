@@ -90,9 +90,11 @@ impl Cpu {
             Asl(operand) => self.asl(operand),
             Jmp(src) => self.jmp(src),
             Swab(dst) => self.swab(dst),
+            Tst(src) => self.tst(src),
             Mov(src, dst) => self.mov(src, dst),
             Cmp(src, dst) => self.cmp(src, dst),
             Bit(src, dst) => self.bit(src, dst),
+            Tstb(src) => self.tstb(src),
             Invalid(opcode) => eprintln!("Opcode {opcode:#08o} is not supported yet"),
         }
     }
@@ -135,6 +137,19 @@ impl Cpu {
 
     fn swab(&mut self, dst: Operand) {
         self.word_mut(dst).swab();
+        let word = *self.word(dst);
+        self.psw[Z] = word.is_zero();
+        self.psw[N] = word.is_negative();
+        self.psw[V] = false;
+        self.psw[C] = false;
+    }
+
+    fn tst(&mut self, src: Operand) {
+        let tst = *self.word(src);
+        self.psw[Z] = tst.is_negative();
+        self.psw[N] = tst.is_negative();
+        self.psw[V] = false;
+        self.psw[C] = false;
     }
 
     pub fn mov(&mut self, src: Operand, dst: Operand) {
@@ -162,6 +177,14 @@ impl Cpu {
         self.psw[Z] = bit.is_zero();
         self.psw[N] = bit.is_negative();
         self.psw[V] = false;
+    }
+
+    fn tstb(&mut self, src: Operand) {
+        let tstb = *self.byte(src);
+        self.psw[Z] = tstb.is_negative();
+        self.psw[N] = tstb.is_negative();
+        self.psw[V] = false;
+        self.psw[C] = false;
     }
 }
 
