@@ -74,7 +74,7 @@ impl Cpu {
     }
 
     fn next_opcode(&mut self) -> Word {
-        self.load(Operand::pc())
+        *self.word(Operand::pc())
     }
 
     fn execute(&mut self, opcode: Word) {
@@ -119,33 +119,33 @@ impl Cpu {
     }
 
     fn swab(&mut self, dst: Operand) {
-        todo!()
+        self.word_mut(dst).swab();
     }
 
     pub fn mov(&mut self, src: Operand, dst: Operand) {
-        let word = self.load::<Word>(src);
-        self.store(dst, word);
+        let word = *self.word(src);
+        *self.word_mut(dst) = word;
         self.psw[N] = word.is_negative();
         self.psw[Z] = word.is_zero();
         self.psw[V] = false;
     }
 
     pub fn cmp(&mut self, src: Operand, dst: Operand) {
-        let src = self.load::<Word>(src);
-        let dst = self.load::<Word>(dst);
-        let out = src - dst;
-        self.psw[Z] = out.is_zero();
-        self.psw[N] = out.is_negative();
+        let src = *self.word(src);
+        let dst = *self.word(dst);
+        let cmp = src - dst;
+        self.psw[Z] = cmp.is_zero();
+        self.psw[N] = cmp.is_negative();
         // self.psw[V] = xxx;
         // self.psw[C] = xxx;
     }
 
     pub fn bit(&mut self, src: Operand, dst: Operand) {
-        let src = self.load::<Word>(src);
-        let dst = self.load::<Word>(dst);
-        let out = src & dst;
-        self.psw[Z] = out.is_zero();
-        self.psw[N] = out.is_negative();
+        let src = *self.word(src);
+        let dst = *self.word(dst);
+        let bit = src & dst;
+        self.psw[Z] = bit.is_zero();
+        self.psw[N] = bit.is_negative();
         self.psw[V] = false;
     }
 }

@@ -6,19 +6,23 @@ pub struct Byte {
 }
 
 impl Byte {
+    pub const fn zero() -> Self {
+        Byte { le: [0] }
+    }
+
     #[inline]
-    pub fn as_u8(&self) -> u8 {
+    pub const fn as_u8(&self) -> u8 {
         self.le[0]
     }
 
     #[inline]
-    pub fn sign_extend(&self) -> u16 {
+    pub const fn sign_extend(&self) -> u16 {
         ((self.le[0] as i8) as i16) as u16
     }
 
     #[inline]
-    pub fn as_u16(&self) -> u16 {
-        self.le[0].into()
+    pub const fn as_u16(&self) -> u16 {
+        self.le[0] as u16
     }
 }
 
@@ -37,13 +41,6 @@ impl From<Byte> for u8 {
     }
 }
 
-impl From<Word> for Byte {
-    #[inline]
-    fn from(word: Word) -> Self {
-        word.le[0].into()
-    }
-}
-
 impl fmt::Display for Byte {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.as_u8().fmt(f)
@@ -53,6 +50,15 @@ impl fmt::Display for Byte {
 impl fmt::Octal for Byte {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.as_u8().fmt(f)
+    }
+}
+
+impl ops::BitAnd for Byte {
+    type Output = Self;
+
+    fn bitand(self, rhs: Self) -> Self::Output {
+        let le = [self.le[0] & rhs.le[0]];
+        Self { le }
     }
 }
 

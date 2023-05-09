@@ -53,19 +53,36 @@ impl fmt::Display for Register {
 pub struct Registers([Word; 8]);
 
 impl Registers {
-    pub fn inc<M>(&mut self, register: Register)
+    pub fn get_inc<M>(&mut self, register: Register) -> Word
+    where
+        M: MemoryAcceess,
+    {
+        let word = self[register];
+        self[register] += M::SIZE;
+        word
+    }
+
+    pub fn dec_get<M>(&mut self, register: Register) -> Word
     where
         M: MemoryAcceess,
     {
         self[register] += M::SIZE;
+        self[register]
     }
 
-    pub fn dec<M>(&mut self, register: Register)
-    where
-        M: MemoryAcceess,
-    {
-        self[register] -= M::SIZE;
-    }
+    // pub fn inc<M>(&mut self, register: Register)
+    // where
+    //     M: MemoryAcceess,
+    // {
+    //     self[register] += M::SIZE;
+    // }
+
+    // pub fn dec<M>(&mut self, register: Register)
+    // where
+    //     M: MemoryAcceess,
+    // {
+    //     self[register] -= M::SIZE;
+    // }
 }
 
 impl ops::Index<Register> for Registers {

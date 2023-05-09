@@ -40,8 +40,7 @@ impl Cpu {
         self.registers[PC] = BOOTROM_START.into();
         let dst = Operand::pc();
         for word in BOOTROM {
-            let data = Word::from(*word);
-            self.store(dst, data);
+            *self.word_mut(dst) = Word::from(*word);
         }
         self.registers[PC] = (BOOTROM_START + 2).into();
     }

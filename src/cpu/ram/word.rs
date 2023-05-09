@@ -5,7 +5,8 @@ use super::*;
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Word {
-    pub(super) le: [u8; 2],
+    // pub(super)
+    le: [Byte; 2],
 }
 
 #[derive(Debug)]
@@ -18,17 +19,65 @@ where
     pub fn range(&self) -> Range<usize> {
         self.0.address_range::<M>()
     }
+
+    pub fn word_index(&self) -> usize {
+        self.0.as_usize() / 2
+    }
+
+    pub fn byte_index(&self) -> (usize, usize) {
+        let addr = self.0.as_usize();
+        (addr / 2, addr % 2)
+    }
 }
 
 impl Word {
     #[inline]
+    pub const fn zero() -> Self {
+        Self {
+            le: [Byte::zero(), Byte::zero()],
+        }
+    }
+
+    pub fn byte(&self, byte: usize) -> &Byte {
+        match byte {
+            0 => self.lo(),
+            1 => self.hi(),
+            other => panic!("byte: invalid byte index ({other}) in word"),
+        }
+    }
+
+    pub fn byte_mut(&mut self, byte: usize) -> &mut Byte {
+        match byte {
+            0 => self.lo_mut(),
+            1 => self.hi_mut(),
+            other => panic!("byte_mut: invalid byte index ({other}) in word"),
+        }
+    }
+
+    fn lo(&self) -> &Byte {
+        &self.le[0]
+    }
+
+    fn hi(&self) -> &Byte {
+        &self.le[1]
+    }
+
+    fn lo_mut(&mut self) -> &mut Byte {
+        &mut self.le[0]
+    }
+
+    fn hi_mut(&mut self) -> &mut Byte {
+        &mut self.le[1]
+    }
+
+    #[inline]
     pub fn as_u16(&self) -> u16 {
-        u16::from_le_bytes(self.le)
+        u16::from_le_bytes([self.le[0].as_u8(), self.le[1].as_u8()])
     }
 
     #[inline]
     pub fn as_usize(&self) -> usize {
-        u16::from_le_bytes(self.le) as usize
+        self.as_u16() as usize
     }
 
     #[inline]
@@ -54,8 +103,8 @@ impl Word {
 impl From<u16> for Word {
     #[inline]
     fn from(value: u16) -> Self {
-        let le = value.to_le_bytes();
-        Self { le }
+        let bytes = value.to_le_bytes();
+        Self::from_le_bytes(&bytes)
     }
 }
 
@@ -70,6 +119,13 @@ impl From<Byte> for Word {
     #[inline]
     fn from(byte: Byte) -> Self {
         byte.sign_extend().into()
+    }
+}
+
+impl From<Word> for Byte {
+    #[inline]
+    fn from(word: Word) -> Self {
+        word.le[0]
     }
 }
 
@@ -101,51 +157,57 @@ impl ops::BitAnd for Word {
 impl ops::AddAssign for Word {
     #[inline]
     fn add_assign(&mut self, rhs: Self) {
-        self.le = (self.as_u16() + u16::from(rhs)).to_le_bytes();
+        let [lo, hi] = (self.as_u16() + rhs.as_u16()).to_le_bytes();
+        self.le = [Byte::from(lo), Byte::from(hi)];
     }
 }
 
 impl ops::AddAssign<u16> for Word {
     #[inline]
     fn add_assign(&mut self, rhs: u16) {
-        self.le = (self.as_u16() + rhs).to_le_bytes();
+        let [lo, hi] = (self.as_u16() + rhs).to_le_bytes();
+        self.le = [Byte::from(lo), Byte::from(hi)];
     }
 }
 
 impl ops::AddAssign<usize> for Word {
     #[inline]
     fn add_assign(&mut self, rhs: usize) {
-        self.le = (self.as_u16() + rhs as u16).to_le_bytes();
+        let [lo, hi] = (self.as_u16() + rhs as u16).to_le_bytes();
+        self.le = [Byte::from(lo), Byte::from(hi)];
     }
 }
 
 impl ops::SubAssign for Word {
     #[inline]
     fn sub_assign(&mut self, rhs: Self) {
-        self.le = (self.as_u16() - u16::from(rhs)).to_le_bytes();
+        let [lo, hi] = (self.as_u16() - rhs.as_u16()).to_le_bytes();
+        self.le = [Byte::from(lo), Byte::from(hi)];
     }
 }
 
 impl ops::SubAssign<u16> for Word {
     #[inline]
     fn sub_assign(&mut self, rhs: u16) {
-        self.le = (self.as_u16() - rhs).to_le_bytes()
+        let [lo, hi] = (self.as_u16() - rhs).to_le_bytes();
+        self.le = [Byte::from(lo), Byte::from(hi)];
     }
 }
 
 impl ops::SubAssign<usize> for Word {
     #[inline]
     fn sub_assign(&mut self, rhs: usize) {
-        self.le = (self.as_u16() - rhs as u16).to_le_bytes()
+        let [lo, hi] = (self.as_u16() - rhs as u16).to_le_bytes();
+        self.le = [Byte::from(lo), Byte::from(hi)];
     }
 }
 
 impl MemoryAcceess for Word {
-    type LittleEndian = [u8; Self::SIZE];
+    type LittleEndian = [Byte; Self::SIZE];
     const SIZE: usize = 2;
 
     fn from_le_bytes(bytes: &[u8]) -> Self {
-        let le = [bytes[0], bytes[1]];
+        let le = [Byte::from(bytes[0]), Byte::from(bytes[1])];
         Self { le }
     }
 
@@ -154,15 +216,15 @@ impl MemoryAcceess for Word {
     }
 
     fn as_le_bytes(&self) -> &[u8] {
-        &self.le
+        todo!("<Word as MemoryAccess>::as_le_bytes()");
     }
 
     fn is_zero(&self) -> bool {
-        self.le[0] == 0 && self.le[1] == 0
+        self.le[0].is_zero() && self.le[1].is_zero()
     }
 
     fn is_negative(&self) -> bool {
-        (self.le[1] as i8).is_negative()
+        self.le[1].is_negative()
     }
 }
 
