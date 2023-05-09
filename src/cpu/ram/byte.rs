@@ -24,6 +24,11 @@ impl Byte {
     pub const fn as_u16(&self) -> u16 {
         self.le[0] as u16
     }
+
+    #[inline]
+    pub fn clear(&mut self) {
+        self.le[0] = 0;
+    }
 }
 
 impl From<u8> for Byte {

@@ -86,6 +86,7 @@ impl Cpu {
             Halt => self.halt(),
             Wait => self.wait(),
             Reset => self.reset(),
+            Clr(dst) => self.clr(dst),
             Asl(operand) => self.asl(operand),
             Jmp(src) => self.jmp(src),
             Swab(dst) => self.swab(dst),
@@ -113,6 +114,14 @@ impl Cpu {
         // let data = Word::from(0o010102);
         // let address = Word::from(0).address();
         // self.ram.store(address, data);
+    }
+
+    fn clr(&mut self, dst: Operand) {
+        self.word_mut(dst).clear();
+        self.psw[Z] = true;
+        self.psw[N] = false;
+        self.psw[V] = false;
+        self.psw[C] = false;
     }
 
     fn asl(&mut self, operand: Operand) {

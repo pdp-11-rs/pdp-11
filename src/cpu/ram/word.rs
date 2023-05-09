@@ -5,7 +5,6 @@ use super::*;
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Word {
-    // pub(super)
     le: [Byte; 2],
 }
 
@@ -52,6 +51,11 @@ impl Word {
             1 => self.hi_mut(),
             other => panic!("byte_mut: invalid byte index ({other}) in word"),
         }
+    }
+
+    pub fn clear(&mut self) {
+        self.le[0].clear();
+        self.le[1].clear();
     }
 
     fn lo(&self) -> &Byte {
