@@ -86,6 +86,7 @@ impl Cpu {
             Halt => self.halt(),
             Wait => self.wait(),
             Reset => self.reset(),
+            Asl(operand) => self.asl(operand),
             Jmp(src) => self.jmp(src),
             Swab(dst) => self.swab(dst),
             Mov(src, dst) => self.mov(src, dst),
@@ -114,8 +115,13 @@ impl Cpu {
         // self.ram.store(address, data);
     }
 
+    fn asl(&mut self, operand: Operand) {
+        let word = self.word(operand).as_u16() << 1;
+        *self.word_mut(operand) = word.into();
+    }
+
     fn jmp(&mut self, src: Operand) {
-        todo!()
+        todo!("JMP")
     }
 
     fn swab(&mut self, dst: Operand) {

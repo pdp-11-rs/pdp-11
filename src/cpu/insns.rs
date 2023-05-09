@@ -5,6 +5,7 @@ pub enum Instruction {
     Halt,
     Wait,
     Reset,
+    Asl(Operand),
     Jmp(Operand),
     Swab(Operand),
     Mov(Operand, Operand),
@@ -14,6 +15,11 @@ pub enum Instruction {
 }
 
 impl Instruction {
+    fn asl(opcode: u16) -> Self {
+        let operand = Operand::from_0_5(opcode);
+        Self::Asl(operand)
+    }
+
     fn jmp(opcode: u16) -> Self {
         let src = Operand::from_0_5(opcode);
         Self::Jmp(src)
@@ -48,6 +54,7 @@ impl Instruction {
             Halt => "HALT".into(),
             Wait => "WAIT".into(),
             Reset => "RESET".into(),
+            Asl(operand) => format!("ASL\t{operand}"),
             Jmp(src) => format!("JMP\t{src}"),
             Swab(dst) => format!("SWAB\t{dst}"),
             Mov(src, dst) => format!("MOV\t{src}, {dst}"),
@@ -65,6 +72,7 @@ impl From<Word> for Instruction {
             0o000000 => Halt,
             0o000001 => Wait,
             0o000005 => Reset,
+            opcode @ 0o006300..=0o006377 => Self::asl(opcode),
             opcode @ 0o000100..=0o000177 => Self::jmp(opcode),
             opcode @ 0o000300..=0o000377 => Self::swab(opcode),
             opcode @ 0o010000..=0o017777 => Self::mov(opcode),
