@@ -233,6 +233,15 @@ impl fmt::Display for Operand {
     }
 }
 
+#[derive(Debug)]
+pub struct Offset(i8);
+
+impl fmt::Display for Offset {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        format!(".{:+}", self.0).fmt(f)
+    }
+}
+
 pub trait MemoryAcceess: Into<Word> + From<Word> + Into<Word> + fmt::Debug + fmt::Octal {
     const SIZE: usize;
     type LittleEndian;
