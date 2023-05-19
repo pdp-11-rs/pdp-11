@@ -182,6 +182,13 @@ impl ops::AddAssign<usize> for Word {
     }
 }
 
+impl ops::AddAssign<u8> for Word {
+    #[inline]
+    fn add_assign(&mut self, rhs: u8) {
+        *self += rhs as u16;
+    }
+}
+
 impl ops::SubAssign for Word {
     #[inline]
     fn sub_assign(&mut self, rhs: Self) {
@@ -195,6 +202,13 @@ impl ops::SubAssign<u16> for Word {
     fn sub_assign(&mut self, rhs: u16) {
         let [lo, hi] = (self.as_u16() - rhs).to_le_bytes();
         self.le = [Byte::from(lo), Byte::from(hi)];
+    }
+}
+
+impl ops::SubAssign<u8> for Word {
+    #[inline]
+    fn sub_assign(&mut self, rhs: u8) {
+        *self -= rhs as u16;
     }
 }
 
