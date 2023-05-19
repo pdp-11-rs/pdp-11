@@ -152,7 +152,7 @@ impl Cpu {
         self.psw[C] = false;
     }
 
-    pub fn mov(&mut self, src: Operand, dst: Operand) {
+    fn mov(&mut self, src: Operand, dst: Operand) {
         let word = *self.word(src);
         *self.word_mut(dst) = word;
         self.psw[N] = word.is_negative();
@@ -160,7 +160,7 @@ impl Cpu {
         self.psw[V] = false;
     }
 
-    pub fn cmp(&mut self, src: Operand, dst: Operand) {
+    fn cmp(&mut self, src: Operand, dst: Operand) {
         let src = *self.word(src);
         let dst = *self.word(dst);
         let cmp = src - dst;
@@ -170,7 +170,7 @@ impl Cpu {
         // self.psw[C] = xxx;
     }
 
-    pub fn bit(&mut self, src: Operand, dst: Operand) {
+    fn bit(&mut self, src: Operand, dst: Operand) {
         let src = *self.word(src);
         let dst = *self.word(dst);
         let bit = src & dst;
