@@ -94,6 +94,7 @@ impl Cpu {
             Mov(src, dst) => self.mov(src, dst),
             Cmp(src, dst) => self.cmp(src, dst),
             Bit(src, dst) => self.bit(src, dst),
+            Bpl(offset) => self.bpl(offset),
             Tstb(src) => self.tstb(src),
             Invalid(opcode) => eprintln!("Opcode {opcode:#08o} is not supported yet"),
         }
@@ -177,6 +178,16 @@ impl Cpu {
         self.psw[Z] = bit.is_zero();
         self.psw[N] = bit.is_negative();
         self.psw[V] = false;
+    }
+
+    fn bpl(&mut self, offset: Offset) {
+        let positive = offset.0.is_positive();
+        let offset = (offset.0.abs() * 2) as u8;
+        if positive {
+            self.registers[PC] += offset;
+        } else {
+            self.registers[PC] -= offset;
+        }
     }
 
     fn tstb(&mut self, src: Operand) {
