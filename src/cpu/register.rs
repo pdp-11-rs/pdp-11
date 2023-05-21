@@ -53,6 +53,10 @@ impl fmt::Display for Register {
 pub struct Registers([Word; 8]);
 
 impl Registers {
+    pub fn reset(&mut self) {
+        *self = Self::default();
+    }
+
     pub fn get_inc<M>(&mut self, register: Register) -> Word
     where
         M: MemoryAcceess,

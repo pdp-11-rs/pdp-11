@@ -3,12 +3,12 @@ use std::ops::Range;
 
 use super::*;
 
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct Word {
     le: [Byte; 2],
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Address<M>(Word, PhantomData<M>);
 
 impl<M> Address<M>
@@ -26,6 +26,10 @@ where
     pub fn byte_index(&self) -> (usize, usize) {
         let addr = self.0.as_usize();
         (addr / 2, addr % 2)
+    }
+
+    pub const fn from_u16(address: u16) -> Self {
+        Self(Word::from_u16(address), PhantomData)
     }
 }
 
@@ -101,6 +105,13 @@ impl Word {
     #[inline]
     pub fn address<M>(self) -> Address<M> {
         Address(self, PhantomData)
+    }
+
+    #[inline]
+    const fn from_u16(value: u16) -> Self {
+        let [lo, hi] = value.to_le_bytes();
+        let le = [Byte::from_u8(lo), Byte::from_u8(hi)];
+        Self { le }
     }
 }
 

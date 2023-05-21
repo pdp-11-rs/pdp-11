@@ -1,8 +1,8 @@
-use std::fmt;
-use std::ops;
+use super::*;
 
 pub use insns::Instruction;
 pub use psw::{Flags::*, ProcessorStatusWord};
+pub use ram::Address;
 pub use ram::Byte;
 pub use ram::Ram;
 pub use ram::Word;
@@ -15,13 +15,15 @@ mod insns;
 mod psw;
 mod ram;
 mod register;
+mod rk;
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Cpu {
     halt: bool,
     registers: Registers,
     psw: ProcessorStatusWord,
     ram: Ram,
+    rk: rk::Rk,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -60,13 +62,21 @@ impl From<u16> for RegisterAddressingMode {
 // }
 
 impl Cpu {
-    pub fn new() -> Self {
-        let mut this = Self::default();
-        this.reset();
-        this
+    pub fn new(rk: impl AsRef<Path>) -> io::Result<Self> {
+        let rk = rk::Rk::with_image(rk)?;
+        let core = Self {
+            halt: false,
+            registers: Registers::default(),
+            psw: ProcessorStatusWord::default(),
+            ram: Ram::default(),
+            rk,
+        };
+
+        Ok(core)
     }
 
-    pub fn run(mut self) {
+    pub fn poweron(mut self) {
+        self.reset();
         while !self.halt {
             let opcode = self.next_opcode();
             self.execute(opcode);
@@ -111,12 +121,11 @@ impl Cpu {
     }
 
     fn reset(&mut self) {
-        *self = Self::default();
+        self.halt = false;
+        self.registers.reset();
         self.psw.reset();
+        self.ram.reset();
         self.bootrom();
-        // let data = Word::from(0o010102);
-        // let address = Word::from(0).address();
-        // self.ram.store(address, data);
     }
 
     fn clr(&mut self, dst: Operand) {

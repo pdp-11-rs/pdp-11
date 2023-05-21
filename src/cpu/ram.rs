@@ -7,10 +7,21 @@ pub use word::Word;
 mod byte;
 mod word;
 
+const RK11_400: Address<Word> = Address::from_u16(0o177400);
+const RK11_402: Address<Word> = Address::from_u16(0o177402);
+const RK11_404: Address<Word> = Address::from_u16(0o177404);
+const RK11_406: Address<Word> = Address::from_u16(0o177406);
+const RK11_410: Address<Word> = Address::from_u16(0o177410);
+const RK11_412: Address<Word> = Address::from_u16(0o177412);
+
 #[derive(Debug)]
 pub struct Ram([Word; 32 * 1024]);
 
 impl Ram {
+    pub fn reset(&mut self) {
+        *self = Self([Word::zero(); 32 * 1024])
+    }
+
     pub fn new() -> Self {
         Self([Word::zero(); 32 * 1024])
     }
@@ -18,13 +29,19 @@ impl Ram {
     #[inline]
     pub fn word(&self, address: Address<Word>) -> &Word {
         println!("Loading {address}");
-        &self.0[address.word_index()]
+        match address {
+            RK11_400 | RK11_402 | RK11_404 | RK11_406 | RK11_410 | RK11_412 => self.rk(address),
+            _ => &self.0[address.word_index()],
+        }
     }
 
     #[inline]
     pub fn word_mut(&mut self, address: Address<Word>) -> &mut Word {
         println!("Storing {address}");
-        &mut self.0[address.word_index()]
+        match address {
+            RK11_400 | RK11_402 | RK11_404 | RK11_406 | RK11_410 | RK11_412 => self.rk_mut(address),
+            _ => &mut self.0[address.word_index()],
+        }
     }
 
     #[inline]
@@ -39,6 +56,14 @@ impl Ram {
         println!("Storing {address}");
         let (index, byte) = address.byte_index();
         self.0[index].byte_mut(byte)
+    }
+
+    fn rk(&self, address: Address<Word>) -> &Word {
+        todo!("RK READ {address}");
+    }
+
+    fn rk_mut(&self, address: Address<Word>) -> &mut Word {
+        todo!("RK WRITE {address}");
     }
 
     // #[inline]

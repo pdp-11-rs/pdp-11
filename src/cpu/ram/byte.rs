@@ -1,6 +1,6 @@
 use super::*;
 
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct Byte {
     pub(super) le: [u8; 1],
 }
@@ -29,13 +29,19 @@ impl Byte {
     pub fn clear(&mut self) {
         self.le[0] = 0;
     }
+
+    #[inline]
+    pub(super) const fn from_u8(value: u8) -> Self {
+        Self {
+            le: value.to_le_bytes(),
+        }
+    }
 }
 
 impl From<u8> for Byte {
     #[inline]
     fn from(value: u8) -> Self {
-        let le = value.to_le_bytes();
-        Self { le }
+        Self::from_u8(value)
     }
 }
 
