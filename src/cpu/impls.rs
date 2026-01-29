@@ -137,6 +137,45 @@ impl Cpu {
         }
     }
 
+    /// Get the effective address for an operand (used for instructions like JMP)
+    pub(super) fn effective_address(&mut self, operand: Operand) -> Word {
+        use RegisterAddressingMode::*;
+
+        let Operand { mode, register } = operand;
+
+        match mode {
+            Register => {
+                // Register mode: effective address is the contents of the register
+                self.registers[register]
+            }
+            RegisterDeferred => {
+                // Register deferred: effective address is the contents of the register
+                self.registers[register]
+            }
+            Autoincrement => {
+                // Autoincrement: effective address is register contents, then increment
+                self.registers.get_inc::<Word>(register)
+            }
+            AutoincrementDeferred => {
+                // Autoincrement deferred: get address from register (increment it),
+                // then get effective address from memory at that location
+                let address = self.registers.get_inc::<Word>(register).address();
+                *self.ram.word(address)
+            }
+            Autodecrement => {
+                // Autodecrement: decrement register first, then use as effective address
+                self.registers.dec_get::<Word>(register)
+            }
+            AutodecrementDeferred => {
+                // Autodecrement deferred: decrement register, get address from memory
+                let address = self.registers.dec_get::<Word>(register).address();
+                *self.ram.word(address)
+            }
+            Index => todo!("effective address index"),
+            IndexDeferred => todo!("effective address index deferred"),
+        }
+    }
+
     // pub(super) fn load<M>(&mut self, src: Operand) -> M
     // where
     //     M: MemoryAcceess,

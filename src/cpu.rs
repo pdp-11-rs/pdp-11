@@ -141,8 +141,10 @@ impl Cpu {
         *self.word_mut(operand) = word.into();
     }
 
+    /// JMP instruction: transfer control to the effective address
     fn jmp(&mut self, src: Operand) {
-        todo!("JMP")
+        let effective_addr = self.effective_address(src);
+        self.registers[PC] = effective_addr;
     }
 
     fn swab(&mut self, dst: Operand) {
