@@ -30,8 +30,26 @@ impl Cpu {
                 let address = self.ram.word(address).address();
                 self.ram.word(address)
             }
-            Index => todo!("src word index"),
-            IndexDeferred => todo!("src word index deferred"),
+            Index => {
+                // Get index offset from next word in instruction stream
+                let offset = *self.word(Operand::pc());
+                // Add offset to register value to get final address
+                let base = self.registers[register];
+                let addr_value = base.as_u16().wrapping_add(offset.as_u16());
+                let address = Word::from(addr_value).address();
+                self.ram.word(address)
+            }
+            IndexDeferred => {
+                // Get index offset from next word in instruction stream
+                let offset = *self.word(Operand::pc());
+                // Add offset to register value
+                let base = self.registers[register];
+                let addr_value = base.as_u16().wrapping_add(offset.as_u16());
+                let address = Word::from(addr_value).address();
+                // Dereference to get final address
+                let address = self.ram.word(address).address();
+                self.ram.word(address)
+            }
         }
     }
 
@@ -64,8 +82,26 @@ impl Cpu {
                 let address = self.ram.word(address).address();
                 self.ram.word_mut(address)
             }
-            Index => todo!("src word index"),
-            IndexDeferred => todo!("src word index deferred"),
+            Index => {
+                // Get index offset from next word in instruction stream
+                let offset = *self.word(Operand::pc());
+                // Add offset to register value to get final address
+                let base = self.registers[register];
+                let addr_value = base.as_u16().wrapping_add(offset.as_u16());
+                let address = Word::from(addr_value).address();
+                self.ram.word_mut(address)
+            }
+            IndexDeferred => {
+                // Get index offset from next word in instruction stream
+                let offset = *self.word(Operand::pc());
+                // Add offset to register value
+                let base = self.registers[register];
+                let addr_value = base.as_u16().wrapping_add(offset.as_u16());
+                let address = Word::from(addr_value).address();
+                // Dereference to get final address
+                let address = self.ram.word(address).address();
+                self.ram.word_mut(address)
+            }
         }
     }
 
@@ -98,8 +134,26 @@ impl Cpu {
                 let address = self.ram.word(address).address();
                 self.ram.byte(address)
             }
-            Index => todo!("src word index"),
-            IndexDeferred => todo!("src word index deferred"),
+            Index => {
+                // Get index offset from next word in instruction stream
+                let offset = *self.word(Operand::pc());
+                // Add offset to register value to get final address
+                let base = self.registers[register];
+                let addr_value = base.as_u16().wrapping_add(offset.as_u16());
+                let address = Word::from(addr_value).address();
+                self.ram.byte(address)
+            }
+            IndexDeferred => {
+                // Get index offset from next word in instruction stream
+                let offset = *self.word(Operand::pc());
+                // Add offset to register value
+                let base = self.registers[register];
+                let addr_value = base.as_u16().wrapping_add(offset.as_u16());
+                let address = Word::from(addr_value).address();
+                // Dereference to get final address
+                let address = self.ram.word(address).address();
+                self.ram.byte(address)
+            }
         }
     }
 
@@ -132,8 +186,26 @@ impl Cpu {
                 let address = self.ram.word(address).address();
                 self.ram.byte_mut(address)
             }
-            Index => todo!("src word index"),
-            IndexDeferred => todo!("src word index deferred"),
+            Index => {
+                // Get index offset from next word in instruction stream
+                let offset = *self.word(Operand::pc());
+                // Add offset to register value to get final address
+                let base = self.registers[register];
+                let addr_value = base.as_u16().wrapping_add(offset.as_u16());
+                let address = Word::from(addr_value).address();
+                self.ram.byte_mut(address)
+            }
+            IndexDeferred => {
+                // Get index offset from next word in instruction stream
+                let offset = *self.word(Operand::pc());
+                // Add offset to register value
+                let base = self.registers[register];
+                let addr_value = base.as_u16().wrapping_add(offset.as_u16());
+                let address = Word::from(addr_value).address();
+                // Dereference to get final address
+                let address = self.ram.word(address).address();
+                self.ram.byte_mut(address)
+            }
         }
     }
 
@@ -171,8 +243,20 @@ impl Cpu {
                 let address = self.registers.dec_get::<Word>(register).address();
                 *self.ram.word(address)
             }
-            Index => todo!("effective address index"),
-            IndexDeferred => todo!("effective address index deferred"),
+            Index => {
+                // Index: get offset from next word, add to register value
+                let offset = *self.word(Operand::pc());
+                let base = self.registers[register];
+                (base.as_u16().wrapping_add(offset.as_u16())).into()
+            }
+            IndexDeferred => {
+                // Index deferred: get offset, add to register, then dereference
+                let offset = *self.word(Operand::pc());
+                let base = self.registers[register];
+                let addr_value = base.as_u16().wrapping_add(offset.as_u16());
+                let address = Word::from(addr_value).address();
+                *self.ram.word(address)
+            }
         }
     }
 
