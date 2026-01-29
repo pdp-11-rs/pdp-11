@@ -13,6 +13,8 @@ pub enum Instruction {
     Mov(Operand, Operand),
     Cmp(Operand, Operand),
     Bit(Operand, Operand),
+    Add(Operand, Operand),
+    Sub(Operand, Operand),
     Bpl(Offset),
     Tstb(Operand),
     Invalid(u16),
@@ -62,6 +64,18 @@ impl Instruction {
         Self::Bit(src, dst)
     }
 
+    fn add(opcode: u16) -> Self {
+        let src = Operand::from_6_11(opcode);
+        let dst = Operand::from_0_5(opcode);
+        Self::Add(src, dst)
+    }
+
+    fn sub(opcode: u16) -> Self {
+        let src = Operand::from_6_11(opcode);
+        let dst = Operand::from_0_5(opcode);
+        Self::Sub(src, dst)
+    }
+
     fn bpl(opcode: u16) -> Self {
         let offset = opcode.to_le_bytes()[0] as i8;
         Self::Bpl(Offset(offset))
@@ -86,6 +100,8 @@ impl Instruction {
             Mov(src, dst) => format!("MOV\t{src}, {dst}"),
             Cmp(src, dst) => format!("CMP\t{src}, {dst}"),
             Bit(src, dst) => format!("BIT\t{src}, {dst}"),
+            Add(src, dst) => format!("ADD\t{src}, {dst}"),
+            Sub(src, dst) => format!("SUB\t{src}, {dst}"),
             Bpl(offset) => format!("BPL\t{offset}"),
             Tstb(src) => format!("TSTB\t{src}"),
             Invalid(opcode) => format!("Invalid opcode {opcode:#08o}"),
@@ -108,6 +124,8 @@ impl From<Word> for Instruction {
             opcode @ 0o010000..=0o017777 => Self::mov(opcode),
             opcode @ 0o020000..=0o027777 => Self::cmp(opcode),
             opcode @ 0o030000..=0o037777 => Self::bit(opcode),
+            opcode @ 0o060000..=0o067777 => Self::add(opcode),
+            opcode @ 0o160000..=0o167777 => Self::sub(opcode),
             opcode @ 0o100000..=0o100377 => Self::bpl(opcode),
             opcode @ 0o105700..=0o105777 => Self::tstb(opcode),
             other => Instruction::Invalid(other),

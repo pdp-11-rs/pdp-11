@@ -104,6 +104,8 @@ impl Cpu {
             Mov(src, dst) => self.mov(src, dst),
             Cmp(src, dst) => self.cmp(src, dst),
             Bit(src, dst) => self.bit(src, dst),
+            Add(src, dst) => self.add(src, dst),
+            Sub(src, dst) => self.sub(src, dst),
             Bpl(offset) => self.bpl(offset),
             Tstb(src) => self.tstb(src),
             Invalid(opcode) => eprintln!("Opcode {opcode:#08o} is not supported yet"),
@@ -189,6 +191,56 @@ impl Cpu {
         self.psw[Z] = bit.is_zero();
         self.psw[N] = bit.is_negative();
         self.psw[V] = false;
+    }
+
+    fn add(&mut self, src: Operand, dst: Operand) {
+        let src_val = *self.word(src);
+        let dst_val = *self.word(dst);
+
+        // Perform addition with overflow detection
+        let src_u16 = src_val.as_u16();
+        let dst_u16 = dst_val.as_u16();
+        let (result_u16, carry) = dst_u16.overflowing_add(src_u16);
+        let result = Word::from(result_u16);
+
+        // Store result
+        *self.word_mut(dst) = result;
+
+        // Set flags
+        self.psw[N] = result.is_negative();
+        self.psw[Z] = result.is_zero();
+        self.psw[C] = carry;
+
+        // Overflow occurs when two numbers of same sign produce result of opposite sign
+        let src_sign = src_u16 & 0x8000 != 0;
+        let dst_sign = dst_u16 & 0x8000 != 0;
+        let result_sign = result_u16 & 0x8000 != 0;
+        self.psw[V] = src_sign == dst_sign && src_sign != result_sign;
+    }
+
+    fn sub(&mut self, src: Operand, dst: Operand) {
+        let src_val = *self.word(src);
+        let dst_val = *self.word(dst);
+
+        // Perform subtraction with underflow detection
+        let src_u16 = src_val.as_u16();
+        let dst_u16 = dst_val.as_u16();
+        let (result_u16, borrow) = dst_u16.overflowing_sub(src_u16);
+        let result = Word::from(result_u16);
+
+        // Store result
+        *self.word_mut(dst) = result;
+
+        // Set flags
+        self.psw[N] = result.is_negative();
+        self.psw[Z] = result.is_zero();
+        self.psw[C] = borrow;
+
+        // Overflow occurs when subtracting opposite signs produces result of wrong sign
+        let src_sign = src_u16 & 0x8000 != 0;
+        let dst_sign = dst_u16 & 0x8000 != 0;
+        let result_sign = result_u16 & 0x8000 != 0;
+        self.psw[V] = src_sign != dst_sign && dst_sign != result_sign;
     }
 
     fn bpl(&mut self, offset: Offset) {
