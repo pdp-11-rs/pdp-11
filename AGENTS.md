@@ -9,6 +9,18 @@ Run `bd prime` for workflow context.
 - `bd close <id>` - Complete work
 - `bd sync` - Sync with git (run at session end)
 
+
+## Rust development guidelines
+1. Follow idiomatic Rust practices
+2. Write clear, maintainable code
+3. Use `cargo fmt` for formatting
+4. Write unit tests for new functionality
+5. Document public APIs with comments
+6. Use `clippy` for linting and code quality checks
+7. Ensure compatibility with the latest stable Rust version
+8. Test with `cargo nextest run` or `cargo test` if nextest is not available
+
+
 ## Landing the Plane (Session Completion)
 
 **When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.
