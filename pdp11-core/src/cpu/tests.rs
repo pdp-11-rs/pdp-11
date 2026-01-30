@@ -1,17 +1,8 @@
 use super::*;
-use std::io::Write;
-use tempfile::NamedTempFile;
 
-/// Helper to create a test CPU with a temporary RK image
+/// Helper to create a test CPU with an empty RK disk
 fn create_test_cpu() -> Cpu {
-    // Create a temporary file for the RK disk image
-    let mut temp_file = NamedTempFile::new().unwrap();
-    // Write a minimal disk image (at least 1 block = 512 bytes)
-    temp_file.write_all(&[0u8; 512]).unwrap();
-    temp_file.flush().unwrap();
-
-    // Create CPU with the temporary RK image
-    Cpu::new(temp_file.path()).unwrap()
+    Cpu::for_testing()
 }
 
 #[test]

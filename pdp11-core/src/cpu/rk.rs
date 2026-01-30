@@ -33,6 +33,16 @@ impl Rk {
         Ok(Self { image_file, image })
     }
 
+    /// Create an empty RK disk for testing purposes
+    /// Creates a minimal 512-byte disk image with no file backing
+    #[cfg(test)]
+    pub fn empty() -> Self {
+        Self {
+            image_file: PathBuf::from("<test>"),
+            image: vec![0u8; 512],
+        }
+    }
+
     /// Initialize RK11 registers in RAM
     pub fn init_registers(&self, ram: &mut Ram) {
         ram.write_direct(RKDS, Word::from(READY)); // Drive ready

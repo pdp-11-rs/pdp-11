@@ -84,6 +84,26 @@ impl Cpu {
         Ok(core)
     }
 
+    /// Create a CPU with an empty RK disk for testing purposes
+    /// This avoids the need for temporary files in tests
+    #[cfg(test)]
+    pub fn for_testing() -> Self {
+        let mut rk = rk::Rk::empty();
+        let mut ram = Ram::default();
+
+        // Initialize RK11 registers in RAM
+        rk.init_registers(&mut ram);
+
+        Self {
+            halt: false,
+            registers: Registers::default(),
+            psw: ProcessorStatusWord::default(),
+            ram,
+            rk,
+            io_temp: Word::zero(),
+        }
+    }
+
     pub fn poweron(mut self) {
         self.reset();
         while !self.halt {
