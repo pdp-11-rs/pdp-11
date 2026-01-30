@@ -16,19 +16,19 @@ pub enum Instruction {
     Add(Operand, Operand),
     Sub(Operand, Operand),
     // Branch instructions
-    Br(Offset),   // Branch (unconditional)
-    Bne(Offset),  // Branch if Not Equal (Z=0)
-    Beq(Offset),  // Branch if Equal (Z=1)
-    Bpl(Offset),  // Branch if Plus (N=0)
-    Bmi(Offset),  // Branch if Minus (N=1)
-    Bvc(Offset),  // Branch if oVerflow Clear (V=0)
-    Bvs(Offset),  // Branch if oVerflow Set (V=1)
-    Bcc(Offset),  // Branch if Carry Clear (C=0)
-    Bcs(Offset),  // Branch if Carry Set (C=1)
-    Bge(Offset),  // Branch if Greater or Equal (N xor V = 0)
-    Blt(Offset),  // Branch if Less Than (N xor V = 1)
-    Bgt(Offset),  // Branch if Greater Than (Z or (N xor V) = 0)
-    Ble(Offset),  // Branch if Less or Equal (Z or (N xor V) = 1)
+    Br(Offset),  // Branch (unconditional)
+    Bne(Offset), // Branch if Not Equal (Z=0)
+    Beq(Offset), // Branch if Equal (Z=1)
+    Bpl(Offset), // Branch if Plus (N=0)
+    Bmi(Offset), // Branch if Minus (N=1)
+    Bvc(Offset), // Branch if oVerflow Clear (V=0)
+    Bvs(Offset), // Branch if oVerflow Set (V=1)
+    Bcc(Offset), // Branch if Carry Clear (C=0)
+    Bcs(Offset), // Branch if Carry Set (C=1)
+    Bge(Offset), // Branch if Greater or Equal (N xor V = 0)
+    Blt(Offset), // Branch if Less Than (N xor V = 1)
+    Bgt(Offset), // Branch if Greater Than (Z or (N xor V) = 0)
+    Ble(Offset), // Branch if Less or Equal (Z or (N xor V) = 1)
     Tstb(Operand),
     Invalid(u16),
 }
