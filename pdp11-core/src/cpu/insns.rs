@@ -61,6 +61,7 @@ pub enum Instruction {
     Bisb(Operand, Operand), // Bit Set Byte
     Jsr(Register, Operand), // Jump to Subroutine
     Rts(Register),          // Return from Subroutine
+    Rti,                    // Return from Interrupt
     // PSW flag manipulation instructions
     Nop, // No Operation
     Clc, // Clear Carry
@@ -262,6 +263,10 @@ impl Instruction {
         Self::Rts(register)
     }
 
+    fn rti() -> Self {
+        Self::Rti
+    }
+
     // Byte instruction decoders
     fn clrb(opcode: u16) -> Self {
         let dst = Operand::from_0_5(opcode);
@@ -401,6 +406,7 @@ impl Instruction {
             Bisb(src, dst) => format!("BISB\t{src}, {dst}"),
             Jsr(register, dst) => format!("JSR\t{register}, {dst}"),
             Rts(register) => format!("RTS\t{register}"),
+            Rti => "RTI".into(),
             Nop => "NOP".into(),
             Clc => "CLC".into(),
             Sec => "SEC".into(),
@@ -479,6 +485,7 @@ impl From<Word> for Instruction {
             opcode @ 0o150000..=0o157777 => Self::bisb(opcode),
             opcode @ 0o004000..=0o004777 => Self::jsr(opcode),
             opcode @ 0o000200..=0o000207 => Self::rts(opcode),
+            0o000002 => Self::rti(),
             0o000240 => Nop,
             0o000241 => Clc,
             0o000261 => Sec,

@@ -195,6 +195,7 @@ impl Cpu {
             Bisb(src, dst) => self.bisb(src, dst),
             Jsr(register, dst) => self.jsr(register, dst),
             Rts(register) => self.rts(register),
+            Rti => self.rti(),
             Nop => self.nop(),
             Clc => self.clc(),
             Sec => self.sec(),
@@ -584,6 +585,20 @@ impl Cpu {
         self.registers[SP] += 2u16;
     }
 
+    fn rti(&mut self) {
+        // RTI: Return from Interrupt
+        // Pop PSW from stack
+        let sp_addr = self.registers[SP].address::<Word>();
+        let psw_word = self.ram[sp_addr];
+        self.registers[SP] += 2u16;
+        self.psw.from_word(psw_word);
+
+        // Pop PC from stack
+        let sp_addr = self.registers[SP].address::<Word>();
+        self.registers[PC] = self.ram[sp_addr];
+        self.registers[SP] += 2u16;
+    }
+
     fn com(&mut self, dst: Operand) {
         // COM: Complement (one's complement)
         let result = !*self.word(dst);
@@ -929,6 +944,44 @@ impl Cpu {
         self.psw[N] = result.is_negative();
         self.psw[V] = false;
         // C is unaffected
+    }
+
+    // Interrupt handling
+
+    /// Trigger an interrupt with the given vector address and priority level
+    /// Vector address points to PC/PSW pair in low memory
+    pub fn interrupt(&mut self, vector: u16, priority: u8) {
+        // Only process interrupt if its priority is higher than current IPL
+        if priority <= self.psw.priority() {
+            return;
+        }
+
+        // Push current PC to stack
+        self.registers[SP] -= 2u16;
+        let sp_addr = self.registers[SP].address::<Word>();
+        self.ram.write_direct(sp_addr, self.registers[PC]);
+
+        // Push current PSW to stack
+        self.registers[SP] -= 2u16;
+        let sp_addr = self.registers[SP].address::<Word>();
+        self.ram.write_direct(sp_addr, self.psw.as_word());
+
+        // Load new PC from vector
+        let vec_addr = Address::<Word>::from_u16(vector);
+        self.registers[PC] = self.ram[vec_addr];
+
+        // Load new PSW from vector + 2 (includes new priority level)
+        let psw_addr = Address::<Word>::from_u16(vector + 2);
+        self.psw.from_word(self.ram[psw_addr]);
+    }
+
+    /// Check for pending peripheral interrupts
+    /// Returns (vector, priority) if interrupt should be serviced
+    pub fn check_interrupts(&mut self) -> Option<(u16, u8)> {
+        // Check console interrupts (vector 060, priority 4)
+        // Check RK11 interrupts (vector 0220, priority 5)
+        // For now, return None - peripherals will need to signal interrupts
+        None
     }
 }
 

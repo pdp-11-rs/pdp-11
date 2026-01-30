@@ -791,6 +791,107 @@ fn test_stack_grows_downward() {
     assert_eq!(cpu.registers[SP], initial_sp);
 }
 
+#[test]
+fn test_interrupt_basic() {
+    let mut cpu = create_test_cpu();
+
+    // Setup: PC at 0o1000, SP at 0o10000, PSW with priority 3
+    cpu.registers[PC] = 0o1000.into();
+    cpu.registers[SP] = 0o10000.into();
+    cpu.psw.set_priority(3);
+    cpu.psw[N] = true;
+    cpu.psw[Z] = false;
+
+    // Set up interrupt vector at 0o060 (console interrupt vector)
+    // Vector contains: [new_pc, new_psw]
+    let vector_addr = Address::<Word>::from_u16(0o060);
+    cpu.ram.write_direct(vector_addr, 0o5000.into()); // New PC
+    let psw_addr = Address::<Word>::from_u16(0o062);
+    cpu.ram.write_direct(psw_addr, 0o200.into()); // New PSW (priority 4 = 0b100 << 5 = 0o200)
+
+    let initial_sp = cpu.registers[SP];
+
+    // Trigger interrupt with priority 5 (higher than current 3)
+    cpu.interrupt(0o060, 5);
+
+    // Check PC changed to vector value
+    assert_eq!(cpu.registers[PC].as_u16(), 0o5000);
+
+    // Check PSW priority level changed
+    assert_eq!(cpu.psw.priority(), 4); // From vector
+
+    // Check SP decreased (PC and PSW pushed)
+    assert_eq!(cpu.registers[SP].as_u16(), initial_sp.as_u16() - 4);
+
+    // Check old PC saved on stack
+    let saved_pc_addr = Address::<Word>::from_u16(initial_sp.as_u16() - 2);
+    assert_eq!(cpu.ram[saved_pc_addr].as_u16(), 0o1000);
+
+    // Check old PSW saved on stack (N=1, Z=0, priority=3)
+    let saved_psw_addr = Address::<Word>::from_u16(initial_sp.as_u16() - 4);
+    let saved_psw = cpu.ram[saved_psw_addr].as_u16();
+    assert_eq!((saved_psw >> 5) & 0x7, 3); // Priority
+    assert_eq!(saved_psw & 0b1000, 0b1000); // N flag
+    assert_eq!(saved_psw & 0b0100, 0); // Z flag
+}
+
+#[test]
+fn test_rti_restores_state() {
+    let mut cpu = create_test_cpu();
+
+    // Setup initial state
+    cpu.registers[PC] = 0o1000.into();
+    cpu.registers[SP] = 0o10000.into();
+    cpu.psw.set_priority(2);
+    cpu.psw[C] = true;
+    cpu.psw[V] = false;
+
+    // Trigger interrupt
+    let vector_addr = Address::<Word>::from_u16(0o060);
+    cpu.ram.write_direct(vector_addr, 0o5000.into()); // New PC
+    let psw_addr = Address::<Word>::from_u16(0o062);
+    cpu.ram.write_direct(psw_addr, 0o300.into()); // New PSW (priority 6 = 0b110 << 5 = 0o300)
+
+    cpu.interrupt(0o060, 7);
+
+    // Verify we're in interrupt handler
+    assert_eq!(cpu.registers[PC].as_u16(), 0o5000);
+    assert_eq!(cpu.psw.priority(), 6);
+
+    // Execute RTI
+    cpu.rti();
+
+    // Check state restored
+    assert_eq!(cpu.registers[PC].as_u16(), 0o1000);
+    assert_eq!(cpu.psw.priority(), 2);
+    assert_eq!(cpu.psw[C], true);
+    assert_eq!(cpu.psw[V], false);
+    assert_eq!(cpu.registers[SP].as_u16(), 0o10000);
+}
+
+#[test]
+fn test_interrupt_priority_blocking() {
+    let mut cpu = create_test_cpu();
+
+    cpu.registers[PC] = 0o1000.into();
+    cpu.registers[SP] = 0o10000.into();
+    cpu.psw.set_priority(5);
+
+    let initial_pc = cpu.registers[PC];
+
+    // Try interrupt with equal priority - should be blocked
+    cpu.interrupt(0o060, 5);
+    assert_eq!(cpu.registers[PC], initial_pc); // PC unchanged
+
+    // Try interrupt with lower priority - should be blocked
+    cpu.interrupt(0o060, 3);
+    assert_eq!(cpu.registers[PC], initial_pc); // PC unchanged
+
+    // Try interrupt with higher priority - should succeed
+    cpu.interrupt(0o060, 6);
+    assert_ne!(cpu.registers[PC], initial_pc); // PC changed
+}
+
 // ===== Single Operand Instruction Tests =====
 
 #[test]
