@@ -159,6 +159,8 @@ impl Cpu {
             Bgt(offset) => self.bgt(offset),
             Ble(offset) => self.ble(offset),
             Tstb(src) => self.tstb(src),
+            Jsr(register, dst) => self.jsr(register, dst),
+            Rts(register) => self.rts(register),
             Invalid(opcode) => eprintln!("Opcode {opcode:#08o} is not supported yet"),
         }
     }
@@ -439,6 +441,78 @@ impl Cpu {
         self.psw[N] = tstb.is_negative();
         self.psw[V] = false;
         self.psw[C] = false;
+    }
+
+    fn jsr(&mut self, register: Register, dst: Operand) {
+        // JSR: Jump to Subroutine
+        // Push register onto stack via SP (R6)
+        self.registers[SP] -= 2u16;
+        let sp_addr = self.registers[SP].address::<Word>();
+        self.ram[sp_addr] = self.registers[register];
+
+        // Save PC in the register
+        self.registers[register] = self.registers[PC];
+
+        // Jump to destination - we need the effective address as a Word value
+        // For most modes, this means the address itself (not the value stored there)
+        use RegisterAddressingMode::*;
+        let target = match dst.mode {
+            Register => {
+                // JSR to a register means jump to the value in that register
+                self.registers[dst.register]
+            }
+            RegisterDeferred => {
+                // JSR (Rn) means jump to the address stored in Rn
+                self.registers[dst.register]
+            }
+            Autoincrement => {
+                // JSR (Rn)+ means jump to address in Rn, then increment Rn
+                let addr = self.registers[dst.register];
+                self.registers[dst.register] += 2u16;
+                addr
+            }
+            AutoincrementDeferred => {
+                // JSR @(Rn)+ means jump to address pointed to by value in Rn, then increment Rn
+                let addr_of_addr = self.registers[dst.register];
+                self.registers[dst.register] += 2u16;
+                self.ram[addr_of_addr.address::<Word>()]
+            }
+            Autodecrement => {
+                // JSR -(Rn) means decrement Rn, then jump to address in Rn
+                self.registers[dst.register] -= 2u16;
+                self.registers[dst.register]
+            }
+            AutodecrementDeferred => {
+                // JSR @-(Rn) means decrement Rn, jump to address pointed to by value in Rn
+                self.registers[dst.register] -= 2u16;
+                let addr_of_addr = self.registers[dst.register];
+                self.ram[addr_of_addr.address::<Word>()]
+            }
+            Index => {
+                // JSR X(Rn) means jump to address (Rn + X)
+                let offset = *self.word(Operand::pc());
+                self.registers[dst.register] + offset
+            }
+            IndexDeferred => {
+                // JSR @X(Rn) means jump to address pointed to by (Rn + X)
+                let offset = *self.word(Operand::pc());
+                let addr_of_addr = (self.registers[dst.register] + offset).address::<Word>();
+                self.ram[addr_of_addr]
+            }
+        };
+
+        self.registers[PC] = target;
+    }
+
+    fn rts(&mut self, register: Register) {
+        // RTS: Return from Subroutine
+        // Load PC from register
+        self.registers[PC] = self.registers[register];
+
+        // Pop register from stack via SP (R6)
+        let sp_addr = self.registers[SP].address::<Word>();
+        self.registers[register] = self.ram[sp_addr];
+        self.registers[SP] += 2u16;
     }
 }
 

@@ -588,3 +588,205 @@ fn console_mov_read() {
     // Check that R2 contains the character
     assert_eq!(cpu.registers[R2].as_u16() & 0o377, 0o103);
 }
+
+#[test]
+fn test_jsr_basic() {
+    let mut cpu = create_test_cpu();
+
+    // Setup: PC at 0o1000, R5 contains 0o2000, SP at 0o10000
+    cpu.registers[PC] = 0o1000.into();
+    cpu.registers[R5] = 0o2000.into();
+    cpu.registers[SP] = 0o10000.into(); // Stack pointer
+
+    // JSR R5, (R0) where R0 points to 0o3000
+    cpu.registers[R0] = 0o3000.into();
+    let dst = Operand {
+        mode: RegisterAddressingMode::RegisterDeferred,
+        register: R0,
+    };
+    cpu.jsr(R5, dst);
+
+    // Check: SP decremented by 2, old R5 pushed to stack
+    assert_eq!(cpu.registers[SP], 0o7776.into());
+    assert_eq!(cpu.ram[Address::<Word>::from_u16(0o7776)], 0o2000.into());
+
+    // Check: R5 now contains old PC
+    assert_eq!(cpu.registers[R5], 0o1000.into());
+
+    // Check: PC now points to destination
+    assert_eq!(cpu.registers[PC], 0o3000.into());
+}
+
+#[test]
+fn test_rts_basic() {
+    let mut cpu = create_test_cpu();
+
+    // Setup: Simulate state after JSR
+    // PC should be wherever the subroutine is
+    cpu.registers[PC] = 0o3000.into();
+    // R5 contains the return address (old PC)
+    cpu.registers[R5] = 0o1002.into();
+    // SP points to saved R5 value on stack
+    cpu.registers[SP] = 0o7776.into();
+    cpu.ram[Address::<Word>::from_u16(0o7776)] = 0o2000.into(); // Old R5 value
+
+    // RTS R5
+    cpu.rts(R5);
+
+    // Check: PC restored from R5
+    assert_eq!(cpu.registers[PC], 0o1002.into());
+
+    // Check: R5 restored from stack
+    assert_eq!(cpu.registers[R5], 0o2000.into());
+
+    // Check: SP incremented by 2
+    assert_eq!(cpu.registers[SP], 0o10000.into());
+}
+
+#[test]
+fn test_jsr_rts_roundtrip() {
+    let mut cpu = create_test_cpu();
+
+    // Setup initial state
+    cpu.registers[PC] = 0o1000.into();
+    cpu.registers[R5] = 0o5555.into();
+    cpu.registers[SP] = 0o10000.into();
+
+    // Save initial values
+    let initial_pc = cpu.registers[PC];
+    let initial_r5 = cpu.registers[R5];
+    let initial_sp = cpu.registers[SP];
+
+    // JSR R5, #3000 (using immediate mode)
+    cpu.registers[R0] = 0o3000.into();
+    let dst = Operand {
+        mode: RegisterAddressingMode::RegisterDeferred,
+        register: R0,
+    };
+    cpu.jsr(R5, dst);
+
+    // Verify JSR worked
+    assert_eq!(cpu.registers[PC], 0o3000.into());
+    assert_eq!(cpu.registers[R5], initial_pc);
+
+    // Now RTS to return
+    cpu.rts(R5);
+
+    // Verify we're back to initial state
+    assert_eq!(cpu.registers[PC], initial_pc);
+    assert_eq!(cpu.registers[R5], initial_r5);
+    assert_eq!(cpu.registers[SP], initial_sp);
+}
+
+#[test]
+fn test_nested_jsr() {
+    let mut cpu = create_test_cpu();
+
+    // Initial state
+    cpu.registers[PC] = 0o1000.into();
+    cpu.registers[R5] = 0o100.into();
+    cpu.registers[R4] = 0o200.into();
+    cpu.registers[SP] = 0o10000.into();
+
+    let initial_r5 = cpu.registers[R5];
+    let initial_r4 = cpu.registers[R4];
+
+    // First JSR R5, #2000
+    cpu.registers[R0] = 0o2000.into();
+    let dst1 = Operand {
+        mode: RegisterAddressingMode::RegisterDeferred,
+        register: R0,
+    };
+    cpu.jsr(R5, dst1);
+
+    // Simulate subroutine updating PC
+    cpu.registers[PC] = 0o2004.into();
+
+    // Second JSR R4, #3000 (nested call)
+    cpu.registers[R0] = 0o3000.into();
+    let dst2 = Operand {
+        mode: RegisterAddressingMode::RegisterDeferred,
+        register: R0,
+    };
+    cpu.jsr(R4, dst2);
+
+    // Verify stack has both frames
+    // SP should be at 0o10000 - 4 = 0o7774
+    assert_eq!(cpu.registers[SP], 0o7774.into());
+    // First saved R5 at 0o7776
+    assert_eq!(cpu.ram[Address::<Word>::from_u16(0o7776)], initial_r5);
+    // Second saved R4 at 0o7774
+    assert_eq!(cpu.ram[Address::<Word>::from_u16(0o7774)], initial_r4);
+
+    // Return from inner subroutine
+    cpu.rts(R4);
+    assert_eq!(cpu.registers[PC], 0o2004.into());
+    assert_eq!(cpu.registers[R4], initial_r4);
+
+    // Return from outer subroutine
+    cpu.rts(R5);
+    assert_eq!(cpu.registers[PC], 0o1000.into());
+    assert_eq!(cpu.registers[R5], initial_r5);
+    assert_eq!(cpu.registers[SP], 0o10000.into());
+}
+
+#[test]
+fn test_jsr_with_different_addressing_modes() {
+    let mut cpu = create_test_cpu();
+
+    cpu.registers[PC] = 0o1000.into();
+    cpu.registers[R5] = 0o5555.into();
+    cpu.registers[SP] = 0o10000.into();
+    cpu.registers[R1] = 0o4000.into();
+
+    // JSR R5, @(R1)+ - autoincrement deferred
+    cpu.ram[Address::<Word>::from_u16(0o4000)] = 0o3000.into(); // Address to jump to
+    let dst = Operand {
+        mode: RegisterAddressingMode::AutoincrementDeferred,
+        register: R1,
+    };
+    cpu.jsr(R5, dst);
+
+    // Check R1 was incremented
+    assert_eq!(cpu.registers[R1], 0o4002.into());
+    // Check we jumped to the right place
+    assert_eq!(cpu.registers[PC], 0o3000.into());
+    // Check R5 saved old PC
+    assert_eq!(cpu.registers[R5], 0o1000.into());
+}
+
+#[test]
+fn test_stack_grows_downward() {
+    let mut cpu = create_test_cpu();
+
+    cpu.registers[SP] = 0o10000.into();
+    cpu.registers[R5] = 0o1234.into();
+    cpu.registers[R4] = 0o5670.into();
+
+    let initial_sp = cpu.registers[SP];
+
+    // First JSR
+    cpu.registers[R0] = 0o2000.into();
+    let dst = Operand {
+        mode: RegisterAddressingMode::RegisterDeferred,
+        register: R0,
+    };
+    cpu.jsr(R5, dst);
+
+    // SP should have decreased
+    assert!(cpu.registers[SP].as_u16() < initial_sp.as_u16());
+    let sp_after_first = cpu.registers[SP];
+
+    // Second JSR
+    cpu.registers[R0] = 0o3000.into();
+    cpu.jsr(R4, dst);
+
+    // SP should have decreased more
+    assert!(cpu.registers[SP].as_u16() < sp_after_first.as_u16());
+
+    // Return from both
+    cpu.rts(R4);
+    assert_eq!(cpu.registers[SP], sp_after_first);
+    cpu.rts(R5);
+    assert_eq!(cpu.registers[SP], initial_sp);
+}

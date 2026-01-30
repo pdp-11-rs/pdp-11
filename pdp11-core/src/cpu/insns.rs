@@ -30,6 +30,8 @@ pub enum Instruction {
     Bgt(Offset), // Branch if Greater Than (Z or (N xor V) = 0)
     Ble(Offset), // Branch if Less or Equal (Z or (N xor V) = 1)
     Tstb(Operand),
+    Jsr(Register, Operand), // Jump to Subroutine
+    Rts(Register),          // Return from Subroutine
     Invalid(u16),
 }
 
@@ -151,6 +153,17 @@ impl Instruction {
         Self::Tstb(src)
     }
 
+    fn jsr(opcode: u16) -> Self {
+        let register = Register::from((opcode >> 6) & 0o7);
+        let dst = Operand::from_0_5(opcode);
+        Self::Jsr(register, dst)
+    }
+
+    fn rts(opcode: u16) -> Self {
+        let register = Register::from(opcode & 0o7);
+        Self::Rts(register)
+    }
+
     fn disassemble(&self) -> String {
         use Instruction::*;
         match self {
@@ -181,6 +194,8 @@ impl Instruction {
             Bgt(offset) => format!("BGT\t{offset}"),
             Ble(offset) => format!("BLE\t{offset}"),
             Tstb(src) => format!("TSTB\t{src}"),
+            Jsr(register, dst) => format!("JSR\t{register}, {dst}"),
+            Rts(register) => format!("RTS\t{register}"),
             Invalid(opcode) => format!("Invalid opcode {opcode:#08o}"),
         }
     }
@@ -218,6 +233,8 @@ impl From<Word> for Instruction {
             opcode @ 0o003000..=0o003377 => Self::bgt(opcode),
             opcode @ 0o003400..=0o003777 => Self::ble(opcode),
             opcode @ 0o105700..=0o105777 => Self::tstb(opcode),
+            opcode @ 0o004000..=0o004777 => Self::jsr(opcode),
+            opcode @ 0o000200..=0o000207 => Self::rts(opcode),
             other => Instruction::Invalid(other),
         }
     }
