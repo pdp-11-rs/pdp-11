@@ -1139,3 +1139,245 @@ fn asr_with_carry_out() {
     assert!(!cpu.psw[Z]);
     assert!(cpu.psw[C]); // Bit 0 was 1
 }
+
+// ===== BIC/BIS Instruction Tests =====
+
+#[test]
+fn bic_basic() {
+    let mut cpu = create_test_cpu();
+    cpu.registers[R0] = Word::from_u16(0o177777); // All bits set
+    cpu.registers[R1] = Word::from_u16(0o000017); // Bits 0-3 set
+    let src = Operand {
+        mode: RegisterAddressingMode::Register,
+        register: R1,
+    };
+    let dst = Operand {
+        mode: RegisterAddressingMode::Register,
+        register: R0,
+    };
+    cpu.bic(src, dst);
+    // Should clear bits 0-3 in R0
+    assert_eq!(cpu.registers[R0], Word::from_u16(0o177760));
+    assert!(cpu.psw[N]); // Result is negative
+    assert!(!cpu.psw[Z]);
+    assert!(!cpu.psw[V]); // V always cleared
+}
+
+#[test]
+fn bic_clear_all() {
+    let mut cpu = create_test_cpu();
+    cpu.registers[R2] = Word::from_u16(0o125252);
+    cpu.registers[R3] = Word::from_u16(0o177777); // Clear all
+    let src = Operand {
+        mode: RegisterAddressingMode::Register,
+        register: R3,
+    };
+    let dst = Operand {
+        mode: RegisterAddressingMode::Register,
+        register: R2,
+    };
+    cpu.bic(src, dst);
+    assert_eq!(cpu.registers[R2], Word::zero());
+    assert!(!cpu.psw[N]);
+    assert!(cpu.psw[Z]);
+    assert!(!cpu.psw[V]);
+}
+
+#[test]
+fn bic_no_effect() {
+    let mut cpu = create_test_cpu();
+    cpu.registers[R4] = Word::from_u16(0o125252);
+    cpu.registers[R5] = Word::from_u16(0o052525); // Non-overlapping bits
+    let src = Operand {
+        mode: RegisterAddressingMode::Register,
+        register: R5,
+    };
+    let dst = Operand {
+        mode: RegisterAddressingMode::Register,
+        register: R4,
+    };
+    cpu.bic(src, dst);
+    assert_eq!(cpu.registers[R4], Word::from_u16(0o125252)); // Unchanged
+    assert!(cpu.psw[N]); // 0o125252 has bit 15 set
+    assert!(!cpu.psw[Z]);
+    assert!(!cpu.psw[V]);
+}
+
+#[test]
+fn bic_single_bit() {
+    let mut cpu = create_test_cpu();
+    cpu.registers[R0] = Word::from_u16(0o100000); // Bit 15 set (negative)
+    cpu.registers[R1] = Word::from_u16(0o100000); // Clear bit 15
+    let src = Operand {
+        mode: RegisterAddressingMode::Register,
+        register: R1,
+    };
+    let dst = Operand {
+        mode: RegisterAddressingMode::Register,
+        register: R0,
+    };
+    cpu.bic(src, dst);
+    assert_eq!(cpu.registers[R0], Word::zero());
+    assert!(!cpu.psw[N]);
+    assert!(cpu.psw[Z]);
+    assert!(!cpu.psw[V]);
+}
+
+#[test]
+fn bis_basic() {
+    let mut cpu = create_test_cpu();
+    cpu.registers[R0] = Word::from_u16(0o177760); // Bits 4-15 set
+    cpu.registers[R1] = Word::from_u16(0o000017); // Bits 0-3 set
+    let src = Operand {
+        mode: RegisterAddressingMode::Register,
+        register: R1,
+    };
+    let dst = Operand {
+        mode: RegisterAddressingMode::Register,
+        register: R0,
+    };
+    cpu.bis(src, dst);
+    // Should set bits 0-3 in R0
+    assert_eq!(cpu.registers[R0], Word::from_u16(0o177777));
+    assert!(cpu.psw[N]); // Result is negative
+    assert!(!cpu.psw[Z]);
+    assert!(!cpu.psw[V]); // V always cleared
+}
+
+#[test]
+fn bis_all_zero() {
+    let mut cpu = create_test_cpu();
+    cpu.registers[R2] = Word::zero();
+    cpu.registers[R3] = Word::zero();
+    let src = Operand {
+        mode: RegisterAddressingMode::Register,
+        register: R3,
+    };
+    let dst = Operand {
+        mode: RegisterAddressingMode::Register,
+        register: R2,
+    };
+    cpu.bis(src, dst);
+    assert_eq!(cpu.registers[R2], Word::zero());
+    assert!(!cpu.psw[N]);
+    assert!(cpu.psw[Z]);
+    assert!(!cpu.psw[V]);
+}
+
+#[test]
+fn bis_no_effect() {
+    let mut cpu = create_test_cpu();
+    cpu.registers[R4] = Word::from_u16(0o177777); // All bits set
+    cpu.registers[R5] = Word::from_u16(0o125252);
+    let src = Operand {
+        mode: RegisterAddressingMode::Register,
+        register: R5,
+    };
+    let dst = Operand {
+        mode: RegisterAddressingMode::Register,
+        register: R4,
+    };
+    cpu.bis(src, dst);
+    assert_eq!(cpu.registers[R4], Word::from_u16(0o177777)); // Still all set
+    assert!(cpu.psw[N]);
+    assert!(!cpu.psw[Z]);
+    assert!(!cpu.psw[V]);
+}
+
+#[test]
+fn bis_set_negative_bit() {
+    let mut cpu = create_test_cpu();
+    cpu.registers[R0] = Word::from_u16(0o077777); // Positive (bit 15 clear)
+    cpu.registers[R1] = Word::from_u16(0o100000); // Set bit 15
+    let src = Operand {
+        mode: RegisterAddressingMode::Register,
+        register: R1,
+    };
+    let dst = Operand {
+        mode: RegisterAddressingMode::Register,
+        register: R0,
+    };
+    cpu.bis(src, dst);
+    assert_eq!(cpu.registers[R0], Word::from_u16(0o177777));
+    assert!(cpu.psw[N]); // Now negative
+    assert!(!cpu.psw[Z]);
+    assert!(!cpu.psw[V]);
+}
+
+#[test]
+fn bic_bis_inverse_operations() {
+    let mut cpu = create_test_cpu();
+    let original = Word::from_u16(0o125252);
+    let mask = Word::from_u16(0o070707);
+
+    // Set up
+    cpu.registers[R0] = original;
+    cpu.registers[R1] = mask;
+    cpu.registers[R2] = original;
+
+    // BIC - clear bits where mask is set
+    let src = Operand {
+        mode: RegisterAddressingMode::Register,
+        register: R1,
+    };
+    let dst = Operand {
+        mode: RegisterAddressingMode::Register,
+        register: R0,
+    };
+    cpu.bic(src, dst);
+
+    // BIS - set bits where mask is set
+    let dst2 = Operand {
+        mode: RegisterAddressingMode::Register,
+        register: R2,
+    };
+    cpu.bis(src, dst2);
+
+    // After BIC, the masked bits should be clear
+    assert_eq!(
+        cpu.registers[R0],
+        Word::from_u16(original.as_u16() & !mask.as_u16())
+    );
+
+    // After BIS, the masked bits should be set
+    assert_eq!(
+        cpu.registers[R2],
+        Word::from_u16(original.as_u16() | mask.as_u16())
+    );
+}
+
+#[test]
+fn bic_carry_unaffected() {
+    let mut cpu = create_test_cpu();
+    cpu.psw[C] = true; // Set carry flag
+    cpu.registers[R0] = Word::from_u16(0o177777);
+    cpu.registers[R1] = Word::from_u16(0o000001);
+    let src = Operand {
+        mode: RegisterAddressingMode::Register,
+        register: R1,
+    };
+    let dst = Operand {
+        mode: RegisterAddressingMode::Register,
+        register: R0,
+    };
+    cpu.bic(src, dst);
+    assert!(cpu.psw[C]); // Carry should be unaffected
+}
+
+#[test]
+fn bis_carry_unaffected() {
+    let mut cpu = create_test_cpu();
+    cpu.psw[C] = false; // Clear carry flag
+    cpu.registers[R0] = Word::zero();
+    cpu.registers[R1] = Word::from_u16(0o000001);
+    let src = Operand {
+        mode: RegisterAddressingMode::Register,
+        register: R1,
+    };
+    let dst = Operand {
+        mode: RegisterAddressingMode::Register,
+        register: R0,
+    };
+    cpu.bis(src, dst);
+    assert!(!cpu.psw[C]); // Carry should be unaffected
+}

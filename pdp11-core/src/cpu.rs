@@ -143,6 +143,8 @@ impl Cpu {
             Mov(src, dst) => self.mov(src, dst),
             Cmp(src, dst) => self.cmp(src, dst),
             Bit(src, dst) => self.bit(src, dst),
+            Bic(src, dst) => self.bic(src, dst),
+            Bis(src, dst) => self.bis(src, dst),
             Add(src, dst) => self.add(src, dst),
             Sub(src, dst) => self.sub(src, dst),
             Br(offset) => self.br(offset),
@@ -292,6 +294,30 @@ impl Cpu {
         self.psw[Z] = bit.is_zero();
         self.psw[N] = bit.is_negative();
         self.psw[V] = false;
+    }
+
+    fn bic(&mut self, src: Operand, dst: Operand) {
+        // BIC: Bit Clear - dst = dst & ~src
+        let src = *self.word(src);
+        let dst_val = *self.word(dst);
+        let result = dst_val & !src;
+        *self.word_mut(dst) = result;
+        self.psw[Z] = result.is_zero();
+        self.psw[N] = result.is_negative();
+        self.psw[V] = false;
+        // C is unaffected
+    }
+
+    fn bis(&mut self, src: Operand, dst: Operand) {
+        // BIS: Bit Set - dst = dst | src
+        let src = *self.word(src);
+        let dst_val = *self.word(dst);
+        let result = dst_val | src;
+        *self.word_mut(dst) = result;
+        self.psw[Z] = result.is_zero();
+        self.psw[N] = result.is_negative();
+        self.psw[V] = false;
+        // C is unaffected
     }
 
     fn add(&mut self, src: Operand, dst: Operand) {

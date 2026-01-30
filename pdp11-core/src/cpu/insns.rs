@@ -13,6 +13,8 @@ pub enum Instruction {
     Mov(Operand, Operand),
     Cmp(Operand, Operand),
     Bit(Operand, Operand),
+    Bic(Operand, Operand), // Bit Clear
+    Bis(Operand, Operand), // Bit Set
     Add(Operand, Operand),
     Sub(Operand, Operand),
     // Branch instructions
@@ -87,6 +89,18 @@ impl Instruction {
         let src = Operand::from_6_11(opcode);
         let dst = Operand::from_0_5(opcode);
         Self::Bit(src, dst)
+    }
+
+    fn bic(opcode: u16) -> Self {
+        let src = Operand::from_6_11(opcode);
+        let dst = Operand::from_0_5(opcode);
+        Self::Bic(src, dst)
+    }
+
+    fn bis(opcode: u16) -> Self {
+        let src = Operand::from_6_11(opcode);
+        let dst = Operand::from_0_5(opcode);
+        Self::Bis(src, dst)
     }
 
     fn add(opcode: u16) -> Self {
@@ -233,6 +247,8 @@ impl Instruction {
             Mov(src, dst) => format!("MOV\t{src}, {dst}"),
             Cmp(src, dst) => format!("CMP\t{src}, {dst}"),
             Bit(src, dst) => format!("BIT\t{src}, {dst}"),
+            Bic(src, dst) => format!("BIC\t{src}, {dst}"),
+            Bis(src, dst) => format!("BIS\t{src}, {dst}"),
             Add(src, dst) => format!("ADD\t{src}, {dst}"),
             Sub(src, dst) => format!("SUB\t{src}, {dst}"),
             Br(offset) => format!("BR\t{offset}"),
@@ -280,6 +296,8 @@ impl From<Word> for Instruction {
             opcode @ 0o010000..=0o017777 => Self::mov(opcode),
             opcode @ 0o020000..=0o027777 => Self::cmp(opcode),
             opcode @ 0o030000..=0o037777 => Self::bit(opcode),
+            opcode @ 0o040000..=0o047777 => Self::bic(opcode),
+            opcode @ 0o050000..=0o057777 => Self::bis(opcode),
             opcode @ 0o060000..=0o067777 => Self::add(opcode),
             opcode @ 0o160000..=0o167777 => Self::sub(opcode),
             // Branch instructions (all use low 8 bits as signed offset)
