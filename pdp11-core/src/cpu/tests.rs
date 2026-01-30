@@ -1381,3 +1381,142 @@ fn bis_carry_unaffected() {
     cpu.bis(src, dst);
     assert!(!cpu.psw[C]); // Carry should be unaffected
 }
+
+// ===== PSW Flag Manipulation Instruction Tests =====
+
+#[test]
+fn nop_no_effect() {
+    let mut cpu = create_test_cpu();
+    // Set up some state
+    cpu.registers[R0] = Word::from_u16(0o123456);
+    cpu.psw[N] = true;
+    cpu.psw[Z] = false;
+    cpu.psw[V] = true;
+    cpu.psw[C] = false;
+
+    // Execute NOP
+    cpu.execute(Word::from_u16(0o000240));
+
+    // Everything should be unchanged
+    assert_eq!(cpu.registers[R0], Word::from_u16(0o123456));
+    assert!(cpu.psw[N]);
+    assert!(!cpu.psw[Z]);
+    assert!(cpu.psw[V]);
+    assert!(!cpu.psw[C]);
+}
+
+#[test]
+fn clc_clears_carry() {
+    let mut cpu = create_test_cpu();
+    cpu.psw[C] = true;
+    cpu.execute(Word::from_u16(0o000241));
+    assert!(!cpu.psw[C]);
+}
+
+#[test]
+fn sec_sets_carry() {
+    let mut cpu = create_test_cpu();
+    cpu.psw[C] = false;
+    cpu.execute(Word::from_u16(0o000261));
+    assert!(cpu.psw[C]);
+}
+
+#[test]
+fn clv_clears_overflow() {
+    let mut cpu = create_test_cpu();
+    cpu.psw[V] = true;
+    cpu.execute(Word::from_u16(0o000242));
+    assert!(!cpu.psw[V]);
+}
+
+#[test]
+fn sev_sets_overflow() {
+    let mut cpu = create_test_cpu();
+    cpu.psw[V] = false;
+    cpu.execute(Word::from_u16(0o000262));
+    assert!(cpu.psw[V]);
+}
+
+#[test]
+fn clz_clears_zero() {
+    let mut cpu = create_test_cpu();
+    cpu.psw[Z] = true;
+    cpu.execute(Word::from_u16(0o000244));
+    assert!(!cpu.psw[Z]);
+}
+
+#[test]
+fn sez_sets_zero() {
+    let mut cpu = create_test_cpu();
+    cpu.psw[Z] = false;
+    cpu.execute(Word::from_u16(0o000264));
+    assert!(cpu.psw[Z]);
+}
+
+#[test]
+fn cln_clears_negative() {
+    let mut cpu = create_test_cpu();
+    cpu.psw[N] = true;
+    cpu.execute(Word::from_u16(0o000250));
+    assert!(!cpu.psw[N]);
+}
+
+#[test]
+fn sen_sets_negative() {
+    let mut cpu = create_test_cpu();
+    cpu.psw[N] = false;
+    cpu.execute(Word::from_u16(0o000270));
+    assert!(cpu.psw[N]);
+}
+
+#[test]
+fn ccc_clears_all_flags() {
+    let mut cpu = create_test_cpu();
+    cpu.psw[N] = true;
+    cpu.psw[Z] = true;
+    cpu.psw[V] = true;
+    cpu.psw[C] = true;
+    cpu.execute(Word::from_u16(0o000257));
+    assert!(!cpu.psw[N]);
+    assert!(!cpu.psw[Z]);
+    assert!(!cpu.psw[V]);
+    assert!(!cpu.psw[C]);
+}
+
+#[test]
+fn scc_sets_all_flags() {
+    let mut cpu = create_test_cpu();
+    cpu.psw[N] = false;
+    cpu.psw[Z] = false;
+    cpu.psw[V] = false;
+    cpu.psw[C] = false;
+    cpu.execute(Word::from_u16(0o000277));
+    assert!(cpu.psw[N]);
+    assert!(cpu.psw[Z]);
+    assert!(cpu.psw[V]);
+    assert!(cpu.psw[C]);
+}
+
+#[test]
+fn flag_instructions_only_affect_target_flag() {
+    let mut cpu = create_test_cpu();
+    // Set all flags
+    cpu.psw[N] = true;
+    cpu.psw[Z] = true;
+    cpu.psw[V] = true;
+    cpu.psw[C] = true;
+
+    // CLC should only clear C
+    cpu.execute(Word::from_u16(0o000241));
+    assert!(cpu.psw[N]);
+    assert!(cpu.psw[Z]);
+    assert!(cpu.psw[V]);
+    assert!(!cpu.psw[C]);
+
+    // CLN should only clear N
+    cpu.execute(Word::from_u16(0o000250));
+    assert!(!cpu.psw[N]);
+    assert!(cpu.psw[Z]);
+    assert!(cpu.psw[V]);
+    assert!(!cpu.psw[C]);
+}

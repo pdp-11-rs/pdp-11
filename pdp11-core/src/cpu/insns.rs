@@ -44,6 +44,18 @@ pub enum Instruction {
     Asr(Operand),           // Arithmetic Shift Right
     Jsr(Register, Operand), // Jump to Subroutine
     Rts(Register),          // Return from Subroutine
+    // PSW flag manipulation instructions
+    Nop, // No Operation
+    Clc, // Clear Carry
+    Sec, // Set Carry
+    Clv, // Clear Overflow
+    Sev, // Set Overflow
+    Clz, // Clear Zero
+    Sez, // Set Zero
+    Cln, // Clear Negative
+    Sen, // Set Negative
+    Ccc, // Clear All Condition Codes
+    Scc, // Set All Condition Codes
     Invalid(u16),
 }
 
@@ -276,6 +288,17 @@ impl Instruction {
             Asr(dst) => format!("ASR\t{dst}"),
             Jsr(register, dst) => format!("JSR\t{register}, {dst}"),
             Rts(register) => format!("RTS\t{register}"),
+            Nop => "NOP".into(),
+            Clc => "CLC".into(),
+            Sec => "SEC".into(),
+            Clv => "CLV".into(),
+            Sev => "SEV".into(),
+            Clz => "CLZ".into(),
+            Sez => "SEZ".into(),
+            Cln => "CLN".into(),
+            Sen => "SEN".into(),
+            Ccc => "CCC".into(),
+            Scc => "SCC".into(),
             Invalid(opcode) => format!("Invalid opcode {opcode:#08o}"),
         }
     }
@@ -326,6 +349,17 @@ impl From<Word> for Instruction {
             opcode @ 0o006200..=0o006277 => Self::asr(opcode),
             opcode @ 0o004000..=0o004777 => Self::jsr(opcode),
             opcode @ 0o000200..=0o000207 => Self::rts(opcode),
+            0o000240 => Nop,
+            0o000241 => Clc,
+            0o000261 => Sec,
+            0o000242 => Clv,
+            0o000262 => Sev,
+            0o000244 => Clz,
+            0o000264 => Sez,
+            0o000250 => Cln,
+            0o000270 => Sen,
+            0o000257 => Ccc,
+            0o000277 => Scc,
             other => Instruction::Invalid(other),
         }
     }

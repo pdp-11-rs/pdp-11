@@ -172,6 +172,27 @@ impl Cpu {
             Asr(dst) => self.asr(dst),
             Jsr(register, dst) => self.jsr(register, dst),
             Rts(register) => self.rts(register),
+            Nop => {} // No operation
+            Clc => self.psw[C] = false,
+            Sec => self.psw[C] = true,
+            Clv => self.psw[V] = false,
+            Sev => self.psw[V] = true,
+            Clz => self.psw[Z] = false,
+            Sez => self.psw[Z] = true,
+            Cln => self.psw[N] = false,
+            Sen => self.psw[N] = true,
+            Ccc => {
+                self.psw[N] = false;
+                self.psw[Z] = false;
+                self.psw[V] = false;
+                self.psw[C] = false;
+            }
+            Scc => {
+                self.psw[N] = true;
+                self.psw[Z] = true;
+                self.psw[V] = true;
+                self.psw[C] = true;
+            }
             Invalid(opcode) => eprintln!("Opcode {opcode:#08o} is not supported yet"),
         }
     }
