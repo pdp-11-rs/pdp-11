@@ -3,7 +3,7 @@ use std::ops::Range;
 
 use super::*;
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 pub struct Word {
     le: [Byte; 2],
 }
@@ -151,6 +151,20 @@ impl From<Word> for usize {
     }
 }
 
+impl PartialOrd for Word {
+    #[inline]
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Word {
+    #[inline]
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.as_u16().cmp(&other.as_u16())
+    }
+}
+
 impl ops::Add for Word {
     type Output = Self;
 
@@ -174,6 +188,33 @@ impl ops::BitAnd for Word {
 
     fn bitand(self, rhs: Self) -> Self::Output {
         let le = [self.le[0] & rhs.le[0], self.le[1] & rhs.le[1]];
+        Self { le }
+    }
+}
+
+impl ops::BitOr for Word {
+    type Output = Self;
+
+    fn bitor(self, rhs: Self) -> Self::Output {
+        let le = [self.le[0] | rhs.le[0], self.le[1] | rhs.le[1]];
+        Self { le }
+    }
+}
+
+impl ops::BitXor for Word {
+    type Output = Self;
+
+    fn bitxor(self, rhs: Self) -> Self::Output {
+        let le = [self.le[0] ^ rhs.le[0], self.le[1] ^ rhs.le[1]];
+        Self { le }
+    }
+}
+
+impl ops::Not for Word {
+    type Output = Self;
+
+    fn not(self) -> Self::Output {
+        let le = [!self.le[0], !self.le[1]];
         Self { le }
     }
 }

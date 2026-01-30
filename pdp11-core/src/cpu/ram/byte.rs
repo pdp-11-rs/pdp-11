@@ -1,6 +1,6 @@
 use super::*;
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 pub struct Byte {
     pub(super) le: [u8; 1],
 }
@@ -52,6 +52,20 @@ impl From<Byte> for u8 {
     }
 }
 
+impl PartialOrd for Byte {
+    #[inline]
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Byte {
+    #[inline]
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.as_u8().cmp(&other.as_u8())
+    }
+}
+
 impl fmt::Display for Byte {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.as_u8().fmt(f)
@@ -69,6 +83,33 @@ impl ops::BitAnd for Byte {
 
     fn bitand(self, rhs: Self) -> Self::Output {
         let le = [self.le[0] & rhs.le[0]];
+        Self { le }
+    }
+}
+
+impl ops::BitOr for Byte {
+    type Output = Self;
+
+    fn bitor(self, rhs: Self) -> Self::Output {
+        let le = [self.le[0] | rhs.le[0]];
+        Self { le }
+    }
+}
+
+impl ops::BitXor for Byte {
+    type Output = Self;
+
+    fn bitxor(self, rhs: Self) -> Self::Output {
+        let le = [self.le[0] ^ rhs.le[0]];
+        Self { le }
+    }
+}
+
+impl ops::Not for Byte {
+    type Output = Self;
+
+    fn not(self) -> Self::Output {
+        let le = [!self.le[0]];
         Self { le }
     }
 }

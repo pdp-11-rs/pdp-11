@@ -774,7 +774,7 @@ fn test_stack_grows_downward() {
     cpu.jsr(R5, dst);
 
     // SP should have decreased
-    assert!(cpu.registers[SP].as_u16() < initial_sp.as_u16());
+    assert!(cpu.registers[SP] < initial_sp);
     let sp_after_first = cpu.registers[SP];
 
     // Second JSR
@@ -782,7 +782,7 @@ fn test_stack_grows_downward() {
     cpu.jsr(R4, dst);
 
     // SP should have decreased more
-    assert!(cpu.registers[SP].as_u16() < sp_after_first.as_u16());
+    assert!(cpu.registers[SP] < sp_after_first);
 
     // Return from both
     cpu.rts(R4);
