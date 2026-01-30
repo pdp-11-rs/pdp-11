@@ -58,7 +58,7 @@ pub trait MmioDevice {
         address >= start_addr && address <= end_addr
     }
 
-    /// Check if this device handles the given byte address  
+    /// Check if this device handles the given byte address
     fn handles_byte_address(&self, address: Address<Byte>) -> bool {
         let (start, end) = self.address_range();
         let start_addr = Address::<Byte>::from_u16(start);
@@ -95,7 +95,7 @@ impl MmioSpace {
         self.is_io_space(address.as_u16())
     }
 
-    /// Check if a byte address is in the I/O page  
+    /// Check if a byte address is in the I/O page
     pub fn is_io_space_byte(&self, address: Address<Byte>) -> bool {
         self.is_io_space(address.as_u16())
     }
