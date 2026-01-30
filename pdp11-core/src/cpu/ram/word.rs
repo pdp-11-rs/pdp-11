@@ -298,7 +298,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_add_basic() {
+    fn add_basic() {
         let a = Word::from(5u16);
         let b = Word::from(10u16);
         let result = a + b;
@@ -306,7 +306,7 @@ mod tests {
     }
 
     #[test]
-    fn test_add_wrapping() {
+    fn add_wrapping() {
         // Test that addition wraps around at 16-bit boundary
         let a = Word::from(0xFFFFu16);
         let b = Word::from(1u16);
@@ -315,7 +315,7 @@ mod tests {
     }
 
     #[test]
-    fn test_add_max_values() {
+    fn add_max_values() {
         let a = Word::from(0xFFFFu16);
         let b = Word::from(0xFFFFu16);
         let result = a + b;
@@ -323,7 +323,7 @@ mod tests {
     }
 
     #[test]
-    fn test_sub_basic() {
+    fn sub_basic() {
         let a = Word::from(10u16);
         let b = Word::from(5u16);
         let result = a - b;
@@ -331,7 +331,7 @@ mod tests {
     }
 
     #[test]
-    fn test_sub_wrapping() {
+    fn sub_wrapping() {
         // Test that subtraction wraps around at 16-bit boundary
         let a = Word::from(0u16);
         let b = Word::from(1u16);
@@ -340,7 +340,7 @@ mod tests {
     }
 
     #[test]
-    fn test_sub_same_values() {
+    fn sub_same_values() {
         let a = Word::from(42u16);
         let b = Word::from(42u16);
         let result = a - b;
@@ -348,14 +348,14 @@ mod tests {
     }
 
     #[test]
-    fn test_add_assign_basic() {
+    fn add_assign_basic() {
         let mut a = Word::from(5u16);
         a += Word::from(10u16);
         assert_eq!(a.as_u16(), 15);
     }
 
     #[test]
-    fn test_add_assign_wrapping() {
+    fn add_assign_wrapping() {
         let mut a = Word::from(0xFFFFu16);
         a += Word::from(1u16);
         assert_eq!(a.as_u16(), 0);
@@ -376,7 +376,7 @@ mod tests {
     }
 
     #[test]
-    fn test_add_assign_usize() {
+    fn add_assign_usize() {
         let mut a = Word::from(100u16);
         a += 50usize;
         assert_eq!(a.as_u16(), 150);
@@ -390,14 +390,14 @@ mod tests {
     }
 
     #[test]
-    fn test_sub_assign_basic() {
+    fn sub_assign_basic() {
         let mut a = Word::from(10u16);
         a -= Word::from(5u16);
         assert_eq!(a.as_u16(), 5);
     }
 
     #[test]
-    fn test_sub_assign_wrapping() {
+    fn sub_assign_wrapping() {
         let mut a = Word::from(0u16);
         a -= Word::from(1u16);
         assert_eq!(a.as_u16(), 0xFFFFu16);
@@ -418,7 +418,7 @@ mod tests {
     }
 
     #[test]
-    fn test_sub_assign_usize() {
+    fn sub_assign_usize() {
         let mut a = Word::from(100u16);
         a -= 50usize;
         assert_eq!(a.as_u16(), 50);
@@ -432,7 +432,7 @@ mod tests {
     }
 
     #[test]
-    fn test_add_vs_add_assign_consistency() {
+    fn add_vs_add_assign_consistency() {
         // Verify that Add and AddAssign produce the same results
         let a = Word::from(123u16);
         let b = Word::from(456u16);
@@ -446,7 +446,7 @@ mod tests {
     }
 
     #[test]
-    fn test_sub_vs_sub_assign_consistency() {
+    fn sub_vs_sub_assign_consistency() {
         // Verify that Sub and SubAssign produce the same results
         let a = Word::from(456u16);
         let b = Word::from(123u16);
@@ -460,28 +460,28 @@ mod tests {
     }
 
     #[test]
-    fn test_add_zero_identity() {
+    fn add_zero_identity() {
         let a = Word::from(42u16);
         let zero = Word::from(0u16);
         assert_eq!(a + zero, a);
     }
 
     #[test]
-    fn test_sub_zero_identity() {
+    fn sub_zero_identity() {
         let a = Word::from(42u16);
         let zero = Word::from(0u16);
         assert_eq!(a - zero, a);
     }
 
     #[test]
-    fn test_add_commutative() {
+    fn add_commutative() {
         let a = Word::from(123u16);
         let b = Word::from(456u16);
         assert_eq!(a + b, b + a);
     }
 
     #[test]
-    fn test_address_arithmetic_wrapping() {
+    fn address_arithmetic_wrapping() {
         // Simulate PDP-11 address wrapping scenarios
 
         // Address at end of memory + offset
@@ -498,7 +498,7 @@ mod tests {
     }
 
     #[test]
-    fn test_pc_increment_wrapping() {
+    fn pc_increment_wrapping() {
         // Simulate PC (Program Counter) wrapping
         let mut pc = Word::from(0xFFFEu16);
         pc += 2u16; // Fetch next instruction
@@ -506,7 +506,7 @@ mod tests {
     }
 
     #[test]
-    fn test_multiple_operations() {
+    fn multiple_operations() {
         let mut a = Word::from(100u16);
         a += 50u16;
         a -= 30u16;
@@ -515,7 +515,7 @@ mod tests {
     }
 
     #[test]
-    fn test_wrapping_chain() {
+    fn wrapping_chain() {
         let mut a = Word::from(0xFFF0u16);
         a += 16u16; // 0x0000
         a += 10u16; // 0x000A

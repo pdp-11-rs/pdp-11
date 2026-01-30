@@ -15,7 +15,7 @@ fn create_test_cpu() -> Cpu {
 }
 
 #[test]
-fn test_jmp_register_deferred() {
+fn jmp_register_deferred() {
     let mut cpu = create_test_cpu();
     // Set up R1 to point to address 0o1000
     cpu.registers[R1] = 0o1000.into();
@@ -33,7 +33,7 @@ fn test_jmp_register_deferred() {
 }
 
 #[test]
-fn test_jmp_autoincrement() {
+fn jmp_autoincrement() {
     let mut cpu = create_test_cpu();
     // Set up R2 to point to a memory location containing the target address
     cpu.registers[R2] = 0o2000.into();
@@ -56,7 +56,7 @@ fn test_jmp_autoincrement() {
 }
 
 #[test]
-fn test_jmp_autoincrement_deferred() {
+fn jmp_autoincrement_deferred() {
     let mut cpu = create_test_cpu();
     // Set up R3 to point to a memory location
     cpu.registers[R3] = 0o3000.into();
@@ -80,7 +80,7 @@ fn test_jmp_autoincrement_deferred() {
 }
 
 #[test]
-fn test_jmp_autodecrement() {
+fn jmp_autodecrement() {
     let mut cpu = create_test_cpu();
     // Set up R4 to point just after the memory location containing target
     cpu.registers[R4] = 0o1002.into();
@@ -102,7 +102,7 @@ fn test_jmp_autodecrement() {
 }
 
 #[test]
-fn test_jmp_index() {
+fn jmp_index() {
     let mut cpu = create_test_cpu();
     // Set up PC for index mode (it will be used to read the index value)
     cpu.registers[PC] = 0o1000.into();
@@ -124,7 +124,7 @@ fn test_jmp_index() {
 }
 
 #[test]
-fn test_jmp_pc_relative() {
+fn jmp_pc_relative() {
     let mut cpu = create_test_cpu();
     // Set up PC
     cpu.registers[PC] = 0o1000.into();

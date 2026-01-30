@@ -149,7 +149,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_add_basic() {
+    fn add_basic() {
         let a = Byte::from(5u8);
         let b = Byte::from(10u8);
         let result = a + b;
@@ -157,7 +157,7 @@ mod tests {
     }
 
     #[test]
-    fn test_add_wrapping() {
+    fn add_wrapping() {
         let a = Byte::from(0xFFu8);
         let b = Byte::from(1u8);
         let result = a + b;
@@ -165,7 +165,7 @@ mod tests {
     }
 
     #[test]
-    fn test_add_max_values() {
+    fn add_max_values() {
         let a = Byte::from(0xFFu8);
         let b = Byte::from(0xFFu8);
         let result = a + b;
@@ -173,7 +173,7 @@ mod tests {
     }
 
     #[test]
-    fn test_sub_basic() {
+    fn sub_basic() {
         let a = Byte::from(10u8);
         let b = Byte::from(5u8);
         let result = a - b;
@@ -181,7 +181,7 @@ mod tests {
     }
 
     #[test]
-    fn test_sub_wrapping() {
+    fn sub_wrapping() {
         let a = Byte::from(0u8);
         let b = Byte::from(1u8);
         let result = a - b;
@@ -189,7 +189,7 @@ mod tests {
     }
 
     #[test]
-    fn test_sub_same_values() {
+    fn sub_same_values() {
         let a = Byte::from(42u8);
         let b = Byte::from(42u8);
         let result = a - b;
@@ -197,14 +197,14 @@ mod tests {
     }
 
     #[test]
-    fn test_add_assign_basic() {
+    fn add_assign_basic() {
         let mut a = Byte::from(5u8);
         a += Byte::from(10u8);
         assert_eq!(a.as_u8(), 15);
     }
 
     #[test]
-    fn test_add_assign_wrapping() {
+    fn add_assign_wrapping() {
         let mut a = Byte::from(0xFFu8);
         a += Byte::from(1u8);
         assert_eq!(a.as_u8(), 0);
@@ -225,14 +225,14 @@ mod tests {
     }
 
     #[test]
-    fn test_sub_assign_basic() {
+    fn sub_assign_basic() {
         let mut a = Byte::from(10u8);
         a -= Byte::from(5u8);
         assert_eq!(a.as_u8(), 5);
     }
 
     #[test]
-    fn test_sub_assign_wrapping() {
+    fn sub_assign_wrapping() {
         let mut a = Byte::from(0u8);
         a -= Byte::from(1u8);
         assert_eq!(a.as_u8(), 0xFFu8);
@@ -253,7 +253,7 @@ mod tests {
     }
 
     #[test]
-    fn test_add_vs_add_assign_consistency() {
+    fn add_vs_add_assign_consistency() {
         let a = Byte::from(123u8);
         let b = Byte::from(45u8);
 
@@ -266,7 +266,7 @@ mod tests {
     }
 
     #[test]
-    fn test_sub_vs_sub_assign_consistency() {
+    fn sub_vs_sub_assign_consistency() {
         let a = Byte::from(200u8);
         let b = Byte::from(50u8);
 
@@ -279,28 +279,28 @@ mod tests {
     }
 
     #[test]
-    fn test_add_zero_identity() {
+    fn add_zero_identity() {
         let a = Byte::from(42u8);
         let zero = Byte::from(0u8);
         assert_eq!(a + zero, a);
     }
 
     #[test]
-    fn test_sub_zero_identity() {
+    fn sub_zero_identity() {
         let a = Byte::from(42u8);
         let zero = Byte::from(0u8);
         assert_eq!(a - zero, a);
     }
 
     #[test]
-    fn test_add_commutative() {
+    fn add_commutative() {
         let a = Byte::from(123u8);
         let b = Byte::from(45u8);
         assert_eq!(a + b, b + a);
     }
 
     #[test]
-    fn test_byte_wrapping_chain() {
+    fn byte_wrapping_chain() {
         let mut a = Byte::from(0xF0u8);
         a += 16u8; // 0x00
         a += 10u8; // 0x0A
