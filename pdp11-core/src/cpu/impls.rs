@@ -9,44 +9,44 @@ impl Cpu {
         match mode {
             Register => &self.registers[register],
             RegisterDeferred => {
-                let address = self.registers[register].address();
-                self.ram.word(address)
+                let address: Address<Word> = self.registers[register].address();
+                &self.ram[address]
             }
             Autoincrement => {
-                let address = self.registers.get_inc::<Word>(register).address();
-                self.ram.word(address)
+                let address: Address<Word> = self.registers.get_inc::<Word>(register).address();
+                &self.ram[address]
             }
             AutoincrementDeferred => {
-                let address = self.registers.get_inc::<Word>(register).address();
-                let address = self.ram.word(address).address();
-                self.ram.word(address)
+                let address: Address<Word> = self.registers.get_inc::<Word>(register).address();
+                let address: Address<Word> = self.ram[address].address();
+                &self.ram[address]
             }
             Autodecrement => {
-                let address = self.registers.dec_get::<Word>(register).address();
-                self.ram.word(address)
+                let address: Address<Word> = self.registers.dec_get::<Word>(register).address();
+                &self.ram[address]
             }
             AutodecrementDeferred => {
-                let address = self.registers.dec_get::<Word>(register).address();
-                let address = self.ram.word(address).address();
-                self.ram.word(address)
+                let address: Address<Word> = self.registers.dec_get::<Word>(register).address();
+                let address: Address<Word> = self.ram[address].address();
+                &self.ram[address]
             }
             Index => {
                 // Get index offset from next word in instruction stream
                 let offset = *self.word(Operand::pc());
                 // Add offset to register value to get final address
                 let base = self.registers[register];
-                let address = (base + offset).address();
-                self.ram.word(address)
+                let address: Address<Word> = (base + offset).address();
+                &self.ram[address]
             }
             IndexDeferred => {
                 // Get index offset from next word in instruction stream
                 let offset = *self.word(Operand::pc());
                 // Add offset to register value
                 let base = self.registers[register];
-                let address = (base + offset).address();
+                let address: Address<Word> = (base + offset).address();
                 // Dereference to get final address
-                let address = self.ram.word(address).address();
-                self.ram.word(address)
+                let address: Address<Word> = self.ram[address].address();
+                &self.ram[address]
             }
         }
     }
@@ -59,44 +59,44 @@ impl Cpu {
         match mode {
             Register => &mut self.registers[register],
             RegisterDeferred => {
-                let address = self.registers[register].address();
-                self.ram.word_mut(address)
+                let address: Address<Word> = self.registers[register].address();
+                &mut self.ram[address]
             }
             Autoincrement => {
-                let address = self.registers.get_inc::<Word>(register).address();
-                self.ram.word_mut(address)
+                let address: Address<Word> = self.registers.get_inc::<Word>(register).address();
+                &mut self.ram[address]
             }
             AutoincrementDeferred => {
-                let address = self.registers.get_inc::<Word>(register).address();
-                let address = self.ram.word(address).address();
-                self.ram.word_mut(address)
+                let address: Address<Word> = self.registers.get_inc::<Word>(register).address();
+                let address: Address<Word> = self.ram[address].address();
+                &mut self.ram[address]
             }
             Autodecrement => {
-                let address = self.registers.dec_get::<Word>(register).address();
-                self.ram.word_mut(address)
+                let address: Address<Word> = self.registers.dec_get::<Word>(register).address();
+                &mut self.ram[address]
             }
             AutodecrementDeferred => {
-                let address = self.registers.dec_get::<Word>(register).address();
-                let address = self.ram.word(address).address();
-                self.ram.word_mut(address)
+                let address: Address<Word> = self.registers.dec_get::<Word>(register).address();
+                let address: Address<Word> = self.ram[address].address();
+                &mut self.ram[address]
             }
             Index => {
                 // Get index offset from next word in instruction stream
                 let offset = *self.word(Operand::pc());
                 // Add offset to register value to get final address
                 let base = self.registers[register];
-                let address = (base + offset).address();
-                self.ram.word_mut(address)
+                let address: Address<Word> = (base + offset).address();
+                &mut self.ram[address]
             }
             IndexDeferred => {
                 // Get index offset from next word in instruction stream
                 let offset = *self.word(Operand::pc());
                 // Add offset to register value
                 let base = self.registers[register];
-                let address = (base + offset).address();
+                let address: Address<Word> = (base + offset).address();
                 // Dereference to get final address
-                let address = self.ram.word(address).address();
-                self.ram.word_mut(address)
+                let address: Address<Word> = self.ram[address].address();
+                &mut self.ram[address]
             }
         }
     }
@@ -109,44 +109,44 @@ impl Cpu {
         match mode {
             Register => self.registers[register].byte(0),
             RegisterDeferred => {
-                let address = self.registers[register].address();
-                self.ram.byte(address)
+                let address: Address<Byte> = self.registers[register].address();
+                &self.ram[address]
             }
             Autoincrement => {
-                let address = self.registers.get_inc::<Byte>(register).address();
-                self.ram.byte(address)
+                let address: Address<Byte> = self.registers.get_inc::<Byte>(register).address();
+                &self.ram[address]
             }
             AutoincrementDeferred => {
-                let address = self.registers.get_inc::<Word>(register).address();
-                let address = self.ram.word(address).address();
-                self.ram.byte(address)
+                let address: Address<Word> = self.registers.get_inc::<Word>(register).address();
+                let address: Address<Byte> = self.ram[address].address();
+                &self.ram[address]
             }
             Autodecrement => {
-                let address = self.registers.dec_get::<Byte>(register).address();
-                self.ram.byte(address)
+                let address: Address<Byte> = self.registers.dec_get::<Byte>(register).address();
+                &self.ram[address]
             }
             AutodecrementDeferred => {
-                let address = self.registers.dec_get::<Word>(register).address();
-                let address = self.ram.word(address).address();
-                self.ram.byte(address)
+                let address: Address<Word> = self.registers.dec_get::<Word>(register).address();
+                let address: Address<Byte> = self.ram[address].address();
+                &self.ram[address]
             }
             Index => {
                 // Get index offset from next word in instruction stream
                 let offset = *self.word(Operand::pc());
                 // Add offset to register value to get final address
                 let base = self.registers[register];
-                let address = (base + offset).address();
-                self.ram.byte(address)
+                let address: Address<Byte> = (base + offset).address();
+                &self.ram[address]
             }
             IndexDeferred => {
                 // Get index offset from next word in instruction stream
                 let offset = *self.word(Operand::pc());
                 // Add offset to register value
                 let base = self.registers[register];
-                let address = (base + offset).address();
+                let address: Address<Word> = (base + offset).address();
                 // Dereference to get final address
-                let address = self.ram.word(address).address();
-                self.ram.byte(address)
+                let address: Address<Byte> = self.ram[address].address();
+                &self.ram[address]
             }
         }
     }
@@ -159,44 +159,44 @@ impl Cpu {
         match mode {
             Register => self.registers[register].byte_mut(0),
             RegisterDeferred => {
-                let address = self.registers[register].address();
-                self.ram.byte_mut(address)
+                let address: Address<Byte> = self.registers[register].address();
+                &mut self.ram[address]
             }
             Autoincrement => {
-                let address = self.registers.get_inc::<Byte>(register).address();
-                self.ram.byte_mut(address)
+                let address: Address<Byte> = self.registers.get_inc::<Byte>(register).address();
+                &mut self.ram[address]
             }
             AutoincrementDeferred => {
-                let address = self.registers.get_inc::<Word>(register).address();
-                let address = self.ram.word(address).address();
-                self.ram.byte_mut(address)
+                let address: Address<Word> = self.registers.get_inc::<Word>(register).address();
+                let address: Address<Byte> = self.ram[address].address();
+                &mut self.ram[address]
             }
             Autodecrement => {
-                let address = self.registers.dec_get::<Byte>(register).address();
-                self.ram.byte_mut(address)
+                let address: Address<Byte> = self.registers.dec_get::<Byte>(register).address();
+                &mut self.ram[address]
             }
             AutodecrementDeferred => {
-                let address = self.registers.dec_get::<Word>(register).address();
-                let address = self.ram.word(address).address();
-                self.ram.byte_mut(address)
+                let address: Address<Word> = self.registers.dec_get::<Word>(register).address();
+                let address: Address<Byte> = self.ram[address].address();
+                &mut self.ram[address]
             }
             Index => {
                 // Get index offset from next word in instruction stream
                 let offset = *self.word(Operand::pc());
                 // Add offset to register value to get final address
                 let base = self.registers[register];
-                let address = (base + offset).address();
-                self.ram.byte_mut(address)
+                let address: Address<Byte> = (base + offset).address();
+                &mut self.ram[address]
             }
             IndexDeferred => {
                 // Get index offset from next word in instruction stream
                 let offset = *self.word(Operand::pc());
                 // Add offset to register value
                 let base = self.registers[register];
-                let address = (base + offset).address();
+                let address: Address<Word> = (base + offset).address();
                 // Dereference to get final address
-                let address = self.ram.word(address).address();
-                self.ram.byte_mut(address)
+                let address: Address<Byte> = self.ram[address].address();
+                &mut self.ram[address]
             }
         }
     }
@@ -223,8 +223,8 @@ impl Cpu {
             AutoincrementDeferred => {
                 // Autoincrement deferred: get address from register (increment it),
                 // then get effective address from memory at that location
-                let address = self.registers.get_inc::<Word>(register).address();
-                *self.ram.word(address)
+                let address: Address<Word> = self.registers.get_inc::<Word>(register).address();
+                self.ram[address]
             }
             Autodecrement => {
                 // Autodecrement: decrement register first, then use as effective address
@@ -232,8 +232,8 @@ impl Cpu {
             }
             AutodecrementDeferred => {
                 // Autodecrement deferred: decrement register, get address from memory
-                let address = self.registers.dec_get::<Word>(register).address();
-                *self.ram.word(address)
+                let address: Address<Word> = self.registers.dec_get::<Word>(register).address();
+                self.ram[address]
             }
             Index => {
                 // Index: get offset from next word, add to register value
@@ -245,8 +245,8 @@ impl Cpu {
                 // Index deferred: get offset, add to register, then dereference
                 let offset = *self.word(Operand::pc());
                 let base = self.registers[register];
-                let address = (base + offset).address();
-                *self.ram.word(address)
+                let address: Address<Word> = (base + offset).address();
+                self.ram[address]
             }
         }
     }

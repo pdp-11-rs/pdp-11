@@ -39,7 +39,7 @@ fn jmp_autoincrement() {
     cpu.registers[R2] = 0o2000.into();
     // Store target address 0o5000 at memory location 0o2000
     let addr = Address::<Word>::from_u16(0o2000);
-    *cpu.ram.word_mut(addr) = 0o5000.into();
+    cpu.ram[addr] = Word::from(0o5000);
 
     // JMP (R2)+ - opcode 0o000122 (mode=2, reg=2)
     let operand = Operand {
@@ -61,9 +61,9 @@ fn jmp_autoincrement_deferred() {
     // Set up R3 to point to a memory location
     cpu.registers[R3] = 0o3000.into();
     // Store an address at 0o3000 that points to another address
-    *cpu.ram.word_mut(Address::from_u16(0o3000)) = 0o4000.into();
+    cpu.ram[Address::<Word>::from_u16(0o3000)] = Word::from(0o4000);
     // Store the final target address at 0o4000
-    *cpu.ram.word_mut(Address::from_u16(0o4000)) = 0o6000.into();
+    cpu.ram[Address::<Word>::from_u16(0o4000)] = Word::from(0o6000);
 
     // JMP @(R3)+ - opcode 0o000133 (mode=3, reg=3)
     let operand = Operand {
@@ -85,7 +85,7 @@ fn jmp_autodecrement() {
     // Set up R4 to point just after the memory location containing target
     cpu.registers[R4] = 0o1002.into();
     // Store target address at 0o1000
-    *cpu.ram.word_mut(Address::from_u16(0o1000)) = 0o7000.into();
+    cpu.ram[Address::<Word>::from_u16(0o1000)] = Word::from(0o7000);
 
     // JMP -(R4) - opcode 0o000144 (mode=4, reg=4)
     let operand = Operand {
@@ -107,7 +107,7 @@ fn jmp_index() {
     // Set up PC for index mode (it will be used to read the index value)
     cpu.registers[PC] = 0o1000.into();
     // Store index offset at 0o1000
-    *cpu.ram.word_mut(Address::from_u16(0o1000)) = 0o100.into();
+    cpu.ram[Address::<Word>::from_u16(0o1000)] = Word::from(0o100);
     // Set up R5 as base
     cpu.registers[R5] = 0o2000.into();
 
@@ -129,7 +129,7 @@ fn jmp_pc_relative() {
     // Set up PC
     cpu.registers[PC] = 0o1000.into();
     // Store offset at 0o1000 (PC-relative addressing)
-    *cpu.ram.word_mut(Address::from_u16(0o1000)) = 0o500.into();
+    cpu.ram[Address::<Word>::from_u16(0o1000)] = Word::from(0o500);
 
     // JMP X(PC) - PC-relative addressing
     let operand = Operand {
