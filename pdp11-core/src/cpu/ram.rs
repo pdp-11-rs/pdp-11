@@ -21,26 +21,26 @@ impl Ram {
 
     #[inline]
     pub fn word(&self, address: Address<Word>) -> &Word {
-        println!("Loading {address}");
+        tracing::trace!("Loading {address}");
         &self.0[address.word_index()]
     }
 
     #[inline]
     pub fn word_mut(&mut self, address: Address<Word>) -> &mut Word {
-        println!("Storing {address}");
+        tracing::trace!("Storing {address}");
         &mut self.0[address.word_index()]
     }
 
     #[inline]
     pub fn byte(&self, address: Address<Byte>) -> &Byte {
-        println!("Loading {address}");
+        tracing::trace!("Loading {address}");
         let (index, byte) = address.byte_index();
         self.0[index].byte(byte)
     }
 
     #[inline]
     pub fn byte_mut(&mut self, address: Address<Byte>) -> &mut Byte {
-        println!("Storing {address}");
+        tracing::trace!("Storing {address}");
         let (index, byte) = address.byte_index();
         self.0[index].byte_mut(byte)
     }

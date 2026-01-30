@@ -144,7 +144,7 @@ impl Cpu {
     fn execute(&mut self, opcode: Word) {
         use Instruction::*;
         let instruction = Instruction::from(opcode);
-        println!("Executing {opcode:#08o}\t{instruction}");
+        tracing::trace!("Executing {opcode:#08o}\t{instruction}");
 
         match instruction {
             Halt => self.halt(),
@@ -214,7 +214,7 @@ impl Cpu {
             Sen => self.sen(),
             Ccc => self.ccc(),
             Scc => self.scc(),
-            Invalid(opcode) => eprintln!("Opcode {opcode:#08o} is not supported yet"),
+            Invalid(opcode) => tracing::warn!("Opcode {opcode:#08o} is not supported yet"),
         }
     }
 }

@@ -95,7 +95,7 @@ impl Rk {
         match cmd {
             FUNC_READ => self.read_sector(ram),
             _ => {
-                eprintln!("Unsupported RK11 command: {:#08o}", cmd.as_u16());
+                tracing::warn!("Unsupported RK11 command: {:#08o}", cmd.as_u16());
                 self.rkcs = READY; // Set ready, clear GO
             }
         }
@@ -113,7 +113,7 @@ impl Rk {
         let sector_offset =
             ((cylinder as usize * 2 + surface as usize) * 12 + sector as usize) * 512;
 
-        println!(
+        tracing::debug!(
             "RK READ: cyl={cylinder:#o} surf={surface} sec={sector:#o} -> offset={sector_offset:#o}"
         );
 
@@ -138,7 +138,7 @@ impl Rk {
                 ba = ba.wrapping_add(2);
                 wc = wc.wrapping_add(1); // Word count is negative, counts up
             } else {
-                eprintln!("RK READ: disk offset {disk_offset:#o} out of bounds");
+                tracing::error!("RK READ: disk offset {disk_offset:#o} out of bounds");
                 break;
             }
         }
