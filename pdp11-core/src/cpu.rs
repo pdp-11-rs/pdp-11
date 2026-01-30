@@ -159,6 +159,15 @@ impl Cpu {
             Bgt(offset) => self.bgt(offset),
             Ble(offset) => self.ble(offset),
             Tstb(src) => self.tstb(src),
+            Com(dst) => self.com(dst),
+            Inc(dst) => self.inc(dst),
+            Dec(dst) => self.dec(dst),
+            Neg(dst) => self.neg(dst),
+            Adc(dst) => self.adc(dst),
+            Sbc(dst) => self.sbc(dst),
+            Ror(dst) => self.ror(dst),
+            Rol(dst) => self.rol(dst),
+            Asr(dst) => self.asr(dst),
             Jsr(register, dst) => self.jsr(register, dst),
             Rts(register) => self.rts(register),
             Invalid(opcode) => eprintln!("Opcode {opcode:#08o} is not supported yet"),
@@ -513,6 +522,114 @@ impl Cpu {
         let sp_addr = self.registers[SP].address::<Word>();
         self.registers[register] = self.ram[sp_addr];
         self.registers[SP] += 2u16;
+    }
+
+    fn com(&mut self, dst: Operand) {
+        // COM: Complement (one's complement)
+        let result = !*self.word(dst);
+        *self.word_mut(dst) = result;
+        self.psw[N] = result.is_negative();
+        self.psw[Z] = result.is_zero();
+        self.psw[V] = false;
+        self.psw[C] = true; // Always set
+    }
+
+    fn inc(&mut self, dst: Operand) {
+        // INC: Increment
+        let value = *self.word(dst);
+        let result = value + Word::from_u16(1);
+        *self.word_mut(dst) = result;
+        self.psw[N] = result.is_negative();
+        self.psw[Z] = result.is_zero();
+        self.psw[V] = value == Word::from_u16(0o077777); // Overflow from max positive
+    }
+
+    fn dec(&mut self, dst: Operand) {
+        // DEC: Decrement
+        let value = *self.word(dst);
+        let result = value - Word::from_u16(1);
+        *self.word_mut(dst) = result;
+        self.psw[N] = result.is_negative();
+        self.psw[Z] = result.is_zero();
+        self.psw[V] = value == Word::from_u16(0o100000); // Overflow from min negative
+    }
+
+    fn neg(&mut self, dst: Operand) {
+        // NEG: Negate (two's complement)
+        let value = *self.word(dst);
+        let result = Word::from_u16(0u16.wrapping_sub(value.as_u16()));
+        *self.word_mut(dst) = result;
+        self.psw[N] = result.is_negative();
+        self.psw[Z] = result.is_zero();
+        self.psw[V] = value == Word::from_u16(0o100000); // Overflow from min negative
+        self.psw[C] = !result.is_zero(); // Clear if result is zero
+    }
+
+    fn adc(&mut self, dst: Operand) {
+        // ADC: Add Carry
+        let value = *self.word(dst);
+        let carry = if self.psw[C] { 1u16 } else { 0u16 };
+        let result = value + Word::from_u16(carry);
+        *self.word_mut(dst) = result;
+        self.psw[N] = result.is_negative();
+        self.psw[Z] = result.is_zero();
+        // Overflow if carry=1, value=077777 (max positive)
+        self.psw[V] = carry == 1 && value == Word::from_u16(0o077777);
+        // Carry if value=177777 and carry=1
+        self.psw[C] = carry == 1 && value == Word::from_u16(0o177777);
+    }
+
+    fn sbc(&mut self, dst: Operand) {
+        // SBC: Subtract Carry
+        let value = *self.word(dst);
+        let carry = if self.psw[C] { 1u16 } else { 0u16 };
+        let result = value - Word::from_u16(carry);
+        *self.word_mut(dst) = result;
+        self.psw[N] = result.is_negative();
+        self.psw[Z] = result.is_zero();
+        // Overflow if carry=1, value=100000 (min negative)
+        self.psw[V] = carry == 1 && value == Word::from_u16(0o100000);
+        // Carry set if result borrows (value was 0 and carry was 1)
+        self.psw[C] = carry == 1 && value.is_zero();
+    }
+
+    fn ror(&mut self, dst: Operand) {
+        // ROR: Rotate Right through carry
+        let value = *self.word(dst);
+        let old_carry = if self.psw[C] { 1u16 } else { 0u16 };
+        let new_carry = value.as_u16() & 1;
+        let result = Word::from_u16((value.as_u16() >> 1) | (old_carry << 15));
+        *self.word_mut(dst) = result;
+        self.psw[N] = result.is_negative();
+        self.psw[Z] = result.is_zero();
+        self.psw[C] = new_carry != 0;
+        self.psw[V] = self.psw[N] != self.psw[C]; // N xor C
+    }
+
+    fn rol(&mut self, dst: Operand) {
+        // ROL: Rotate Left through carry
+        let value = *self.word(dst);
+        let old_carry = if self.psw[C] { 1u16 } else { 0u16 };
+        let new_carry = (value.as_u16() >> 15) & 1;
+        let result = Word::from_u16((value.as_u16() << 1) | old_carry);
+        *self.word_mut(dst) = result;
+        self.psw[N] = result.is_negative();
+        self.psw[Z] = result.is_zero();
+        self.psw[C] = new_carry != 0;
+        self.psw[V] = self.psw[N] != self.psw[C]; // N xor C
+    }
+
+    fn asr(&mut self, dst: Operand) {
+        // ASR: Arithmetic Shift Right (sign-extend)
+        let value = *self.word(dst);
+        let sign_bit = value.as_u16() & 0o100000;
+        let new_carry = value.as_u16() & 1;
+        let result = Word::from_u16((value.as_u16() >> 1) | sign_bit);
+        *self.word_mut(dst) = result;
+        self.psw[N] = result.is_negative();
+        self.psw[Z] = result.is_zero();
+        self.psw[C] = new_carry != 0;
+        self.psw[V] = self.psw[N] != self.psw[C]; // N xor C
     }
 }
 

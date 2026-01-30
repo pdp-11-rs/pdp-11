@@ -790,3 +790,352 @@ fn test_stack_grows_downward() {
     cpu.rts(R5);
     assert_eq!(cpu.registers[SP], initial_sp);
 }
+
+// ===== Single Operand Instruction Tests =====
+
+#[test]
+fn com_basic() {
+    let mut cpu = create_test_cpu();
+    cpu.registers[R0] = Word::from_u16(0o125252);
+    let dst = Operand {
+        mode: RegisterAddressingMode::Register,
+        register: R0,
+    };
+    cpu.com(dst);
+    assert_eq!(cpu.registers[R0], Word::from_u16(0o052525));
+    assert!(!cpu.psw[N]); // Result is positive
+    assert!(!cpu.psw[Z]); // Result is non-zero
+    assert!(!cpu.psw[V]); // V always cleared
+    assert!(cpu.psw[C]); // C always set
+}
+
+#[test]
+fn com_zero() {
+    let mut cpu = create_test_cpu();
+    cpu.registers[R1] = Word::from_u16(0o177777);
+    let dst = Operand {
+        mode: RegisterAddressingMode::Register,
+        register: R1,
+    };
+    cpu.com(dst);
+    assert_eq!(cpu.registers[R1], Word::zero());
+    assert!(!cpu.psw[N]);
+    assert!(cpu.psw[Z]);
+    assert!(!cpu.psw[V]);
+    assert!(cpu.psw[C]);
+}
+
+#[test]
+fn inc_basic() {
+    let mut cpu = create_test_cpu();
+    cpu.registers[R2] = Word::from_u16(100);
+    let dst = Operand {
+        mode: RegisterAddressingMode::Register,
+        register: R2,
+    };
+    cpu.inc(dst);
+    assert_eq!(cpu.registers[R2], Word::from_u16(101));
+    assert!(!cpu.psw[N]);
+    assert!(!cpu.psw[Z]);
+    assert!(!cpu.psw[V]);
+}
+
+#[test]
+fn inc_overflow() {
+    let mut cpu = create_test_cpu();
+    cpu.registers[R3] = Word::from_u16(0o077777); // Max positive value
+    let dst = Operand {
+        mode: RegisterAddressingMode::Register,
+        register: R3,
+    };
+    cpu.inc(dst);
+    assert_eq!(cpu.registers[R3], Word::from_u16(0o100000)); // Becomes negative
+    assert!(cpu.psw[N]);
+    assert!(!cpu.psw[Z]);
+    assert!(cpu.psw[V]); // Overflow detected
+}
+
+#[test]
+fn dec_basic() {
+    let mut cpu = create_test_cpu();
+    cpu.registers[R4] = Word::from_u16(100);
+    let dst = Operand {
+        mode: RegisterAddressingMode::Register,
+        register: R4,
+    };
+    cpu.dec(dst);
+    assert_eq!(cpu.registers[R4], Word::from_u16(99));
+    assert!(!cpu.psw[N]);
+    assert!(!cpu.psw[Z]);
+    assert!(!cpu.psw[V]);
+}
+
+#[test]
+fn dec_overflow() {
+    let mut cpu = create_test_cpu();
+    cpu.registers[R5] = Word::from_u16(0o100000); // Min negative value
+    let dst = Operand {
+        mode: RegisterAddressingMode::Register,
+        register: R5,
+    };
+    cpu.dec(dst);
+    assert_eq!(cpu.registers[R5], Word::from_u16(0o077777)); // Becomes positive
+    assert!(!cpu.psw[N]);
+    assert!(!cpu.psw[Z]);
+    assert!(cpu.psw[V]); // Overflow detected
+}
+
+#[test]
+fn neg_basic() {
+    let mut cpu = create_test_cpu();
+    cpu.registers[R0] = Word::from_u16(100);
+    let dst = Operand {
+        mode: RegisterAddressingMode::Register,
+        register: R0,
+    };
+    cpu.neg(dst);
+    assert_eq!(cpu.registers[R0].as_u16(), 0u16.wrapping_sub(100));
+    assert!(cpu.psw[N]);
+    assert!(!cpu.psw[Z]);
+    assert!(cpu.psw[C]);
+}
+
+#[test]
+fn neg_zero() {
+    let mut cpu = create_test_cpu();
+    cpu.registers[R1] = Word::zero();
+    let dst = Operand {
+        mode: RegisterAddressingMode::Register,
+        register: R1,
+    };
+    cpu.neg(dst);
+    assert_eq!(cpu.registers[R1], Word::zero());
+    assert!(!cpu.psw[N]);
+    assert!(cpu.psw[Z]);
+    assert!(!cpu.psw[C]); // C clear when result is zero
+}
+
+#[test]
+fn neg_overflow() {
+    let mut cpu = create_test_cpu();
+    cpu.registers[R2] = Word::from_u16(0o100000); // Min negative value
+    let dst = Operand {
+        mode: RegisterAddressingMode::Register,
+        register: R2,
+    };
+    cpu.neg(dst);
+    assert_eq!(cpu.registers[R2], Word::from_u16(0o100000)); // Stays same
+    assert!(cpu.psw[N]);
+    assert!(!cpu.psw[Z]);
+    assert!(cpu.psw[V]); // Overflow
+    assert!(cpu.psw[C]);
+}
+
+#[test]
+fn adc_no_carry() {
+    let mut cpu = create_test_cpu();
+    cpu.psw[C] = false;
+    cpu.registers[R3] = Word::from_u16(100);
+    let dst = Operand {
+        mode: RegisterAddressingMode::Register,
+        register: R3,
+    };
+    cpu.adc(dst);
+    assert_eq!(cpu.registers[R3], Word::from_u16(100)); // Unchanged
+    assert!(!cpu.psw[N]);
+    assert!(!cpu.psw[Z]);
+    assert!(!cpu.psw[V]);
+    assert!(!cpu.psw[C]);
+}
+
+#[test]
+fn adc_with_carry() {
+    let mut cpu = create_test_cpu();
+    cpu.psw[C] = true;
+    cpu.registers[R4] = Word::from_u16(100);
+    let dst = Operand {
+        mode: RegisterAddressingMode::Register,
+        register: R4,
+    };
+    cpu.adc(dst);
+    assert_eq!(cpu.registers[R4], Word::from_u16(101));
+    assert!(!cpu.psw[N]);
+    assert!(!cpu.psw[Z]);
+    assert!(!cpu.psw[V]);
+    assert!(!cpu.psw[C]);
+}
+
+#[test]
+fn adc_overflow() {
+    let mut cpu = create_test_cpu();
+    cpu.psw[C] = true;
+    cpu.registers[R5] = Word::from_u16(0o077777); // Max positive
+    let dst = Operand {
+        mode: RegisterAddressingMode::Register,
+        register: R5,
+    };
+    cpu.adc(dst);
+    assert_eq!(cpu.registers[R5], Word::from_u16(0o100000));
+    assert!(cpu.psw[N]);
+    assert!(!cpu.psw[Z]);
+    assert!(cpu.psw[V]); // Overflow
+}
+
+#[test]
+fn sbc_no_carry() {
+    let mut cpu = create_test_cpu();
+    cpu.psw[C] = false;
+    cpu.registers[R0] = Word::from_u16(100);
+    let dst = Operand {
+        mode: RegisterAddressingMode::Register,
+        register: R0,
+    };
+    cpu.sbc(dst);
+    assert_eq!(cpu.registers[R0], Word::from_u16(100)); // Unchanged
+    assert!(!cpu.psw[N]);
+    assert!(!cpu.psw[Z]);
+    assert!(!cpu.psw[V]);
+    assert!(!cpu.psw[C]);
+}
+
+#[test]
+fn sbc_with_carry() {
+    let mut cpu = create_test_cpu();
+    cpu.psw[C] = true;
+    cpu.registers[R1] = Word::from_u16(100);
+    let dst = Operand {
+        mode: RegisterAddressingMode::Register,
+        register: R1,
+    };
+    cpu.sbc(dst);
+    assert_eq!(cpu.registers[R1], Word::from_u16(99));
+    assert!(!cpu.psw[N]);
+    assert!(!cpu.psw[Z]);
+    assert!(!cpu.psw[V]);
+    assert!(!cpu.psw[C]);
+}
+
+#[test]
+fn sbc_underflow() {
+    let mut cpu = create_test_cpu();
+    cpu.psw[C] = true;
+    cpu.registers[R2] = Word::zero();
+    let dst = Operand {
+        mode: RegisterAddressingMode::Register,
+        register: R2,
+    };
+    cpu.sbc(dst);
+    assert_eq!(cpu.registers[R2], Word::from_u16(0o177777));
+    assert!(cpu.psw[N]);
+    assert!(!cpu.psw[Z]);
+    assert!(cpu.psw[C]); // Borrow
+}
+
+#[test]
+fn ror_basic() {
+    let mut cpu = create_test_cpu();
+    cpu.psw[C] = false;
+    cpu.registers[R3] = Word::from_u16(0b0000_0000_0000_0110); // 6
+    let dst = Operand {
+        mode: RegisterAddressingMode::Register,
+        register: R3,
+    };
+    cpu.ror(dst);
+    assert_eq!(cpu.registers[R3], Word::from_u16(0b0000_0000_0000_0011)); // 3
+    assert!(!cpu.psw[N]);
+    assert!(!cpu.psw[Z]);
+    assert!(!cpu.psw[C]); // Bit 0 was 0
+}
+
+#[test]
+fn ror_with_carry() {
+    let mut cpu = create_test_cpu();
+    cpu.psw[C] = true;
+    cpu.registers[R4] = Word::from_u16(0b0000_0000_0000_0100); // 4
+    let dst = Operand {
+        mode: RegisterAddressingMode::Register,
+        register: R4,
+    };
+    cpu.ror(dst);
+    assert_eq!(cpu.registers[R4], Word::from_u16(0b1000_0000_0000_0010)); // Bit 15 set from carry
+    assert!(cpu.psw[N]); // Bit 15 is now set
+    assert!(!cpu.psw[Z]);
+    assert!(!cpu.psw[C]); // Bit 0 was 0
+}
+
+#[test]
+fn rol_basic() {
+    let mut cpu = create_test_cpu();
+    cpu.psw[C] = false;
+    cpu.registers[R5] = Word::from_u16(0b0100_0000_0000_0000); // Bit 14 set
+    let dst = Operand {
+        mode: RegisterAddressingMode::Register,
+        register: R5,
+    };
+    cpu.rol(dst);
+    assert_eq!(cpu.registers[R5], Word::from_u16(0b1000_0000_0000_0000)); // Bit 15 set
+    assert!(cpu.psw[N]);
+    assert!(!cpu.psw[Z]);
+    assert!(!cpu.psw[C]); // Bit 15 was 0
+}
+
+#[test]
+fn rol_with_carry() {
+    let mut cpu = create_test_cpu();
+    cpu.psw[C] = true;
+    cpu.registers[R0] = Word::from_u16(0b1000_0000_0000_0010); // Bits 15 and 1 set
+    let dst = Operand {
+        mode: RegisterAddressingMode::Register,
+        register: R0,
+    };
+    cpu.rol(dst);
+    assert_eq!(cpu.registers[R0], Word::from_u16(0b0000_0000_0000_0101)); // Bit 0 set from carry
+    assert!(!cpu.psw[N]);
+    assert!(!cpu.psw[Z]);
+    assert!(cpu.psw[C]); // Bit 15 was 1
+}
+
+#[test]
+fn asr_positive() {
+    let mut cpu = create_test_cpu();
+    cpu.registers[R1] = Word::from_u16(0b0000_0000_0000_0110); // 6
+    let dst = Operand {
+        mode: RegisterAddressingMode::Register,
+        register: R1,
+    };
+    cpu.asr(dst);
+    assert_eq!(cpu.registers[R1], Word::from_u16(0b0000_0000_0000_0011)); // 3, sign extended (0)
+    assert!(!cpu.psw[N]);
+    assert!(!cpu.psw[Z]);
+    assert!(!cpu.psw[C]); // Bit 0 was 0
+}
+
+#[test]
+fn asr_negative() {
+    let mut cpu = create_test_cpu();
+    cpu.registers[R2] = Word::from_u16(0b1000_0000_0000_0110); // Negative number
+    let dst = Operand {
+        mode: RegisterAddressingMode::Register,
+        register: R2,
+    };
+    cpu.asr(dst);
+    assert_eq!(cpu.registers[R2], Word::from_u16(0b1100_0000_0000_0011)); // Sign extended (1)
+    assert!(cpu.psw[N]);
+    assert!(!cpu.psw[Z]);
+    assert!(!cpu.psw[C]); // Bit 0 was 0
+}
+
+#[test]
+fn asr_with_carry_out() {
+    let mut cpu = create_test_cpu();
+    cpu.registers[R3] = Word::from_u16(0b1000_0000_0000_0111); // Negative, bit 0 set
+    let dst = Operand {
+        mode: RegisterAddressingMode::Register,
+        register: R3,
+    };
+    cpu.asr(dst);
+    assert_eq!(cpu.registers[R3], Word::from_u16(0b1100_0000_0000_0011)); // Sign extended
+    assert!(cpu.psw[N]);
+    assert!(!cpu.psw[Z]);
+    assert!(cpu.psw[C]); // Bit 0 was 1
+}

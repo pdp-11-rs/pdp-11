@@ -30,6 +30,16 @@ pub enum Instruction {
     Bgt(Offset), // Branch if Greater Than (Z or (N xor V) = 0)
     Ble(Offset), // Branch if Less or Equal (Z or (N xor V) = 1)
     Tstb(Operand),
+    // Single operand instructions
+    Com(Operand),           // Complement (one's complement)
+    Inc(Operand),           // Increment
+    Dec(Operand),           // Decrement
+    Neg(Operand),           // Negate (two's complement)
+    Adc(Operand),           // Add Carry
+    Sbc(Operand),           // Subtract Carry
+    Ror(Operand),           // Rotate Right
+    Rol(Operand),           // Rotate Left
+    Asr(Operand),           // Arithmetic Shift Right
     Jsr(Register, Operand), // Jump to Subroutine
     Rts(Register),          // Return from Subroutine
     Invalid(u16),
@@ -153,6 +163,51 @@ impl Instruction {
         Self::Tstb(src)
     }
 
+    fn com(opcode: u16) -> Self {
+        let dst = Operand::from_0_5(opcode);
+        Self::Com(dst)
+    }
+
+    fn inc(opcode: u16) -> Self {
+        let dst = Operand::from_0_5(opcode);
+        Self::Inc(dst)
+    }
+
+    fn dec(opcode: u16) -> Self {
+        let dst = Operand::from_0_5(opcode);
+        Self::Dec(dst)
+    }
+
+    fn neg(opcode: u16) -> Self {
+        let dst = Operand::from_0_5(opcode);
+        Self::Neg(dst)
+    }
+
+    fn adc(opcode: u16) -> Self {
+        let dst = Operand::from_0_5(opcode);
+        Self::Adc(dst)
+    }
+
+    fn sbc(opcode: u16) -> Self {
+        let dst = Operand::from_0_5(opcode);
+        Self::Sbc(dst)
+    }
+
+    fn ror(opcode: u16) -> Self {
+        let dst = Operand::from_0_5(opcode);
+        Self::Ror(dst)
+    }
+
+    fn rol(opcode: u16) -> Self {
+        let dst = Operand::from_0_5(opcode);
+        Self::Rol(dst)
+    }
+
+    fn asr(opcode: u16) -> Self {
+        let dst = Operand::from_0_5(opcode);
+        Self::Asr(dst)
+    }
+
     fn jsr(opcode: u16) -> Self {
         let register = Register::from((opcode >> 6) & 0o7);
         let dst = Operand::from_0_5(opcode);
@@ -194,6 +249,15 @@ impl Instruction {
             Bgt(offset) => format!("BGT\t{offset}"),
             Ble(offset) => format!("BLE\t{offset}"),
             Tstb(src) => format!("TSTB\t{src}"),
+            Com(dst) => format!("COM\t{dst}"),
+            Inc(dst) => format!("INC\t{dst}"),
+            Dec(dst) => format!("DEC\t{dst}"),
+            Neg(dst) => format!("NEG\t{dst}"),
+            Adc(dst) => format!("ADC\t{dst}"),
+            Sbc(dst) => format!("SBC\t{dst}"),
+            Ror(dst) => format!("ROR\t{dst}"),
+            Rol(dst) => format!("ROL\t{dst}"),
+            Asr(dst) => format!("ASR\t{dst}"),
             Jsr(register, dst) => format!("JSR\t{register}, {dst}"),
             Rts(register) => format!("RTS\t{register}"),
             Invalid(opcode) => format!("Invalid opcode {opcode:#08o}"),
@@ -233,6 +297,15 @@ impl From<Word> for Instruction {
             opcode @ 0o003000..=0o003377 => Self::bgt(opcode),
             opcode @ 0o003400..=0o003777 => Self::ble(opcode),
             opcode @ 0o105700..=0o105777 => Self::tstb(opcode),
+            opcode @ 0o005100..=0o005177 => Self::com(opcode),
+            opcode @ 0o005200..=0o005277 => Self::inc(opcode),
+            opcode @ 0o005300..=0o005377 => Self::dec(opcode),
+            opcode @ 0o005400..=0o005477 => Self::neg(opcode),
+            opcode @ 0o005500..=0o005577 => Self::adc(opcode),
+            opcode @ 0o005600..=0o005677 => Self::sbc(opcode),
+            opcode @ 0o006000..=0o006077 => Self::ror(opcode),
+            opcode @ 0o006100..=0o006177 => Self::rol(opcode),
+            opcode @ 0o006200..=0o006277 => Self::asr(opcode),
             opcode @ 0o004000..=0o004777 => Self::jsr(opcode),
             opcode @ 0o000200..=0o000207 => Self::rts(opcode),
             other => Instruction::Invalid(other),
