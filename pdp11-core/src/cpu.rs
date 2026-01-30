@@ -174,7 +174,7 @@ impl Cpu {
 
     fn tst(&mut self, src: Operand) {
         let tst = *self.word(src);
-        self.psw[Z] = tst.is_negative();
+        self.psw[Z] = tst.is_zero();
         self.psw[N] = tst.is_negative();
         self.psw[V] = false;
         self.psw[C] = false;
@@ -194,8 +194,18 @@ impl Cpu {
         let cmp = src - dst;
         self.psw[Z] = cmp.is_zero();
         self.psw[N] = cmp.is_negative();
-        // self.psw[V] = xxx;
-        // self.psw[C] = xxx;
+        
+        // CMP performs src - dst, so calculate flags using subtraction logic
+        let src_u16 = src.as_u16();
+        let dst_u16 = dst.as_u16();
+        let (result_u16, borrow) = src_u16.overflowing_sub(dst_u16);
+        self.psw[C] = borrow;
+        
+        // Overflow occurs when subtracting opposite signs produces result of wrong sign
+        let src_sign = src_u16 & 0x8000 != 0;
+        let dst_sign = dst_u16 & 0x8000 != 0;
+        let result_sign = result_u16 & 0x8000 != 0;
+        self.psw[V] = src_sign != dst_sign && src_sign != result_sign;
     }
 
     fn bit(&mut self, src: Operand, dst: Operand) {
@@ -269,7 +279,7 @@ impl Cpu {
 
     fn tstb(&mut self, src: Operand) {
         let tstb = *self.byte(src);
-        self.psw[Z] = tstb.is_negative();
+        self.psw[Z] = tstb.is_zero();
         self.psw[N] = tstb.is_negative();
         self.psw[V] = false;
         self.psw[C] = false;

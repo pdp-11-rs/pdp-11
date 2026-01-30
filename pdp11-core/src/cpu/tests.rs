@@ -146,12 +146,12 @@ fn jmp_pc_relative() {
 #[test]
 fn ram_index_notation() {
     let mut cpu = create_test_cpu();
-    
+
     // Test Word indexing
     let addr = Address::<Word>::from_u16(0o1000);
     cpu.ram[addr] = 0o5432.into();
     assert_eq!(cpu.ram[addr].as_u16(), 0o5432);
-    
+
     // Test Byte indexing
     let byte_addr = Address::<Byte>::from_u16(0o2000);
     cpu.ram[byte_addr] = 0o123.into();
