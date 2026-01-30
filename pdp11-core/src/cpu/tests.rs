@@ -864,8 +864,8 @@ fn test_rti_restores_state() {
     // Check state restored
     assert_eq!(cpu.registers[PC].as_u16(), 0o1000);
     assert_eq!(cpu.psw.priority(), 2);
-    assert_eq!(cpu.psw[C], true);
-    assert_eq!(cpu.psw[V], false);
+    assert!(cpu.psw[C]);
+    assert!(!cpu.psw[V]);
     assert_eq!(cpu.registers[SP].as_u16(), 0o10000);
 }
 
