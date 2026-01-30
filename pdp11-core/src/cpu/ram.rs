@@ -91,22 +91,34 @@ impl Default for Ram {
     }
 }
 
-// impl<M> ops::Index<Address<M>> for Ram
-// where
-//     M: MemoryAcceess,
-// {
-//     type Output = [u8];
+impl ops::Index<Address<Word>> for Ram {
+    type Output = Word;
 
-//     fn index(&self, index: Address<M>) -> &Self::Output {
-//         &self.0[index.range()]
-//     }
-// }
+    #[inline]
+    fn index(&self, address: Address<Word>) -> &Self::Output {
+        self.word(address)
+    }
+}
 
-// impl<M> ops::IndexMut<Address<M>> for Ram
-// where
-//     M: MemoryAcceess,
-// {
-//     fn index_mut(&mut self, index: Address<M>) -> &mut Self::Output {
-//         &mut self.0[index.range()]
-//     }
-// }
+impl ops::IndexMut<Address<Word>> for Ram {
+    #[inline]
+    fn index_mut(&mut self, address: Address<Word>) -> &mut Self::Output {
+        self.word_mut(address)
+    }
+}
+
+impl ops::Index<Address<Byte>> for Ram {
+    type Output = Byte;
+
+    #[inline]
+    fn index(&self, address: Address<Byte>) -> &Self::Output {
+        self.byte(address)
+    }
+}
+
+impl ops::IndexMut<Address<Byte>> for Ram {
+    #[inline]
+    fn index_mut(&mut self, address: Address<Byte>) -> &mut Self::Output {
+        self.byte_mut(address)
+    }
+}

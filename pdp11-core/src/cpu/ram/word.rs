@@ -8,7 +8,7 @@ pub struct Word {
     le: [Byte; 2],
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Address<M>(Word, PhantomData<M>);
 
 impl<M> Address<M>
