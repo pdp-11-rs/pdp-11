@@ -24,6 +24,9 @@ pub struct Cpu {
     psw: ProcessorStatusWord,
     ram: Ram,
     rk: rk::Rk,
+    /// Temporary storage for memory-mapped I/O register reads
+    /// This allows returning references to RK11 registers
+    io_temp: Word,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -63,13 +66,19 @@ impl From<u16> for RegisterAddressingMode {
 
 impl Cpu {
     pub fn new(rk: impl AsRef<Path>) -> io::Result<Self> {
-        let rk = rk::Rk::with_image(rk)?;
+        let mut rk = rk::Rk::with_image(rk)?;
+        let mut ram = Ram::default();
+        
+        // Initialize RK11 registers in RAM
+        rk.init_registers(&mut ram);
+        
         let core = Self {
             halt: false,
             registers: Registers::default(),
             psw: ProcessorStatusWord::default(),
-            ram: Ram::default(),
+            ram,
             rk,
+            io_temp: Word::zero(),
         };
 
         Ok(core)
@@ -80,6 +89,8 @@ impl Cpu {
         while !self.halt {
             let opcode = self.next_opcode();
             self.execute(opcode);
+            // Check if any RK command was triggered
+            self.rk.check_command(&mut self.ram);
         }
     }
 
@@ -194,13 +205,13 @@ impl Cpu {
         let cmp = src - dst;
         self.psw[Z] = cmp.is_zero();
         self.psw[N] = cmp.is_negative();
-        
+
         // CMP performs src - dst, so calculate flags using subtraction logic
         let src_u16 = src.as_u16();
         let dst_u16 = dst.as_u16();
         let (result_u16, borrow) = src_u16.overflowing_sub(dst_u16);
         self.psw[C] = borrow;
-        
+
         // Overflow occurs when subtracting opposite signs produces result of wrong sign
         let src_sign = src_u16 & 0x8000 != 0;
         let dst_sign = dst_u16 & 0x8000 != 0;
