@@ -8,7 +8,7 @@ pub struct Word {
     le: [Byte; 2],
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Address<M>(Word, PhantomData<M>);
 
 impl<M> Address<M>
@@ -30,6 +30,11 @@ where
 
     pub const fn from_u16(address: u16) -> Self {
         Self(Word::from_u16(address), PhantomData)
+    }
+
+    /// Get the u16 value of this address
+    pub fn as_u16(&self) -> u16 {
+        self.0.as_u16()
     }
 }
 

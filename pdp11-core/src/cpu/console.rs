@@ -122,3 +122,28 @@ impl fmt::Debug for Console {
             .finish()
     }
 }
+
+impl mmio::MmioDevice for Console {
+    fn read_word(&mut self, address: Address<Word>) -> Word {
+        self.read_register(address)
+    }
+
+    fn write_word(&mut self, address: Address<Word>, value: Word) {
+        self.write_register(address, value);
+    }
+
+    fn address_range(&self) -> (u16, u16) {
+        (0o177560, 0o177566)
+    }
+
+    fn handles_word_address(&self, address: Address<Word>) -> bool {
+        matches!(address, RCSR | RBUF | XCSR | XBUF)
+    }
+
+    fn handles_byte_address(&self, address: Address<Byte>) -> bool {
+        // Console registers are word-aligned, check if byte address falls within range
+        let start = Address::<Byte>::from_u16(0o177560);
+        let end = Address::<Byte>::from_u16(0o177567); // XBUF + 1
+        address >= start && address <= end
+    }
+}

@@ -13,6 +13,7 @@ mod bootrom;
 mod console;
 mod impls;
 mod insns;
+mod mmio;
 mod psw;
 mod ram;
 mod register;
@@ -26,9 +27,12 @@ pub struct Cpu {
     ram: Ram,
     rk: rk::Rk,
     console: console::Console,
+    mmio: mmio::MmioSpace,
     /// Temporary storage for memory-mapped I/O register reads
     /// This allows returning references to RK11 registers
     io_temp: Word,
+    /// Temporary storage for byte I/O reads
+    io_temp_byte: Byte,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -83,7 +87,9 @@ impl Cpu {
             ram,
             rk,
             console,
+            mmio: mmio::MmioSpace::new(),
             io_temp: Word::zero(),
+            io_temp_byte: Byte::zero(),
         };
 
         Ok(core)
@@ -108,7 +114,9 @@ impl Cpu {
             ram,
             rk,
             console,
+            mmio: mmio::MmioSpace::new(),
             io_temp: Word::zero(),
+            io_temp_byte: Byte::zero(),
         }
     }
 
@@ -118,7 +126,7 @@ impl Cpu {
             let opcode = self.next_opcode();
             self.execute(opcode);
             // Check if any RK command was triggered
-            self.rk.check_command(&mut self.ram);
+            self.rk.execute_pending_command(&mut self.ram);
         }
     }
 

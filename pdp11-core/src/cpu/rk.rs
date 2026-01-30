@@ -10,6 +10,13 @@ use super::*;
 pub struct Rk {
     image_file: PathBuf,
     image: Vec<u8>,
+    // RK11 Registers
+    rkds: Word, // Drive Status
+    rker: Word, // Error Register
+    rkcs: Word, // Control Status
+    rkwc: Word, // Word Count
+    rkba: Word, // Bus Address
+    rkda: Word, // Disk Address
 }
 
 // RK11 Register addresses
@@ -30,7 +37,16 @@ impl Rk {
         let image_file = image.as_ref().to_path_buf();
         let image = fs::read(&image_file)?;
 
-        Ok(Self { image_file, image })
+        Ok(Self {
+            image_file,
+            image,
+            rkds: READY,
+            rker: Word::zero(),
+            rkcs: READY,
+            rkwc: Word::zero(),
+            rkba: Word::zero(),
+            rkda: Word::zero(),
+        })
     }
 
     /// Create an empty RK disk for testing purposes
@@ -40,38 +56,47 @@ impl Rk {
         Self {
             image_file: PathBuf::from("<test>"),
             image: vec![0u8; 512],
+            rkds: READY,
+            rker: Word::zero(),
+            rkcs: READY,
+            rkwc: Word::zero(),
+            rkba: Word::zero(),
+            rkda: Word::zero(),
         }
     }
 
     /// Initialize RK11 registers in RAM
     pub fn init_registers(&self, ram: &mut Ram) {
-        ram.write_direct(RKDS, READY); // Drive ready
-        ram.write_direct(RKER, Word::zero());
-        ram.write_direct(RKCS, READY); // Controller ready
-        ram.write_direct(RKWC, Word::zero());
-        ram.write_direct(RKBA, Word::zero());
-        ram.write_direct(RKDA, Word::zero());
+        ram.write_direct(RKDS, self.rkds);
+        ram.write_direct(RKER, self.rker);
+        ram.write_direct(RKCS, self.rkcs);
+        ram.write_direct(RKWC, self.rkwc);
+        ram.write_direct(RKBA, self.rkba);
+        ram.write_direct(RKDA, self.rkda);
+    }
+
+    /// Execute any pending RK11 command (called after RKCS write)
+    pub fn execute_pending_command(&mut self, ram: &mut Ram) {
+        self.check_command(ram);
     }
 
     /// Check if a write to RKCS triggered a command, and execute it
-    pub fn check_command(&mut self, ram: &mut Ram) {
-        let rkcs = ram[RKCS];
-
+    fn check_command(&mut self, ram: &mut Ram) {
         // Check if GO bit is set
-        if (rkcs & GO) != Word::zero() {
+        if (self.rkcs & GO) != Word::zero() {
             self.execute_command(ram);
         }
     }
 
     /// Execute RK11 command when GO bit is set
     fn execute_command(&mut self, ram: &mut Ram) {
-        let cmd = ram[RKCS] & Word::from_u16(0o000016); // Function code bits 1-3
+        let cmd = self.rkcs & Word::from_u16(0o000016); // Function code bits 1-3
 
         match cmd {
             FUNC_READ => self.read_sector(ram),
             _ => {
                 eprintln!("Unsupported RK11 command: {:#08o}", cmd.as_u16());
-                ram.write_direct(RKCS, READY); // Set ready, clear GO
+                self.rkcs = READY; // Set ready, clear GO
             }
         }
     }
@@ -79,7 +104,7 @@ impl Rk {
     /// Read sector from disk image to memory via DMA
     fn read_sector(&mut self, ram: &mut Ram) {
         // Decode disk address (cylinder/surface/sector)
-        let da = ram[RKDA].as_u16();
+        let da = self.rkda.as_u16();
         let cylinder = (da >> 5) & 0o377; // Bits 5-12: cylinder
         let surface = (da >> 4) & 0o1; // Bit 4: surface (head)
         let sector = da & 0o17; // Bits 0-3: sector
@@ -93,8 +118,8 @@ impl Rk {
         );
 
         // Get word count (negative, counts up to zero)
-        let mut wc = ram[RKWC].as_u16();
-        let mut ba = ram[RKBA].as_u16();
+        let mut wc = self.rkwc.as_u16();
+        let mut ba = self.rkba.as_u16();
 
         // Transfer words from disk to memory
         let mut disk_offset = sector_offset;
@@ -119,9 +144,52 @@ impl Rk {
         }
 
         // Update registers after transfer
-        ram.write_direct(RKWC, Word::from(wc));
-        ram.write_direct(RKBA, Word::from(ba));
-        ram.write_direct(RKCS, READY); // Set ready, clear GO
+        self.rkwc = Word::from(wc);
+        self.rkba = Word::from(ba);
+        self.rkcs = READY; // Set ready, clear GO
+    }
+}
+
+impl mmio::MmioDevice for Rk {
+    fn read_word(&mut self, address: Address<Word>) -> Word {
+        match address {
+            RKDS => self.rkds,
+            RKER => self.rker,
+            RKCS => self.rkcs,
+            RKWC => self.rkwc,
+            RKBA => self.rkba,
+            RKDA => self.rkda,
+            _ => Word::zero(),
+        }
+    }
+
+    fn write_word(&mut self, address: Address<Word>, value: Word) {
+        match address {
+            RKDS => self.rkds = value,
+            RKER => self.rker = value,
+            RKCS => {
+                self.rkcs = value;
+                // Note: check_command will be called separately by CPU
+            }
+            RKWC => self.rkwc = value,
+            RKBA => self.rkba = value,
+            RKDA => self.rkda = value,
+            _ => {}
+        }
+    }
+
+    fn address_range(&self) -> (u16, u16) {
+        (0o177400, 0o177412)
+    }
+
+    fn handles_word_address(&self, address: Address<Word>) -> bool {
+        matches!(address, RKDS | RKER | RKCS | RKWC | RKBA | RKDA)
+    }
+
+    fn handles_byte_address(&self, address: Address<Byte>) -> bool {
+        let start = Address::<Byte>::from_u16(0o177400);
+        let end = Address::<Byte>::from_u16(0o177413); // RKDA + 1
+        address >= start && address <= end
     }
 }
 
