@@ -151,12 +151,21 @@ impl From<Word> for usize {
     }
 }
 
+impl ops::Add for Word {
+    type Output = Self;
+
+    #[inline]
+    fn add(self, rhs: Self) -> Self::Output {
+        self.as_u16().wrapping_add(rhs.as_u16()).into()
+    }
+}
+
 impl ops::Sub for Word {
     type Output = Self;
 
     #[inline]
     fn sub(self, rhs: Self) -> Self::Output {
-        (self.as_u16() - rhs.as_u16()).into()
+        self.as_u16().wrapping_sub(rhs.as_u16()).into()
     }
 }
 
@@ -172,7 +181,7 @@ impl ops::BitAnd for Word {
 impl ops::AddAssign for Word {
     #[inline]
     fn add_assign(&mut self, rhs: Self) {
-        let [lo, hi] = (self.as_u16() + rhs.as_u16()).to_le_bytes();
+        let [lo, hi] = self.as_u16().wrapping_add(rhs.as_u16()).to_le_bytes();
         self.le = [Byte::from(lo), Byte::from(hi)];
     }
 }
@@ -180,7 +189,7 @@ impl ops::AddAssign for Word {
 impl ops::AddAssign<u16> for Word {
     #[inline]
     fn add_assign(&mut self, rhs: u16) {
-        let [lo, hi] = (self.as_u16() + rhs).to_le_bytes();
+        let [lo, hi] = self.as_u16().wrapping_add(rhs).to_le_bytes();
         self.le = [Byte::from(lo), Byte::from(hi)];
     }
 }
@@ -188,7 +197,7 @@ impl ops::AddAssign<u16> for Word {
 impl ops::AddAssign<usize> for Word {
     #[inline]
     fn add_assign(&mut self, rhs: usize) {
-        let [lo, hi] = (self.as_u16() + rhs as u16).to_le_bytes();
+        let [lo, hi] = self.as_u16().wrapping_add(rhs as u16).to_le_bytes();
         self.le = [Byte::from(lo), Byte::from(hi)];
     }
 }
@@ -203,7 +212,7 @@ impl ops::AddAssign<u8> for Word {
 impl ops::SubAssign for Word {
     #[inline]
     fn sub_assign(&mut self, rhs: Self) {
-        let [lo, hi] = (self.as_u16() - rhs.as_u16()).to_le_bytes();
+        let [lo, hi] = self.as_u16().wrapping_sub(rhs.as_u16()).to_le_bytes();
         self.le = [Byte::from(lo), Byte::from(hi)];
     }
 }
@@ -211,7 +220,7 @@ impl ops::SubAssign for Word {
 impl ops::SubAssign<u16> for Word {
     #[inline]
     fn sub_assign(&mut self, rhs: u16) {
-        let [lo, hi] = (self.as_u16() - rhs).to_le_bytes();
+        let [lo, hi] = self.as_u16().wrapping_sub(rhs).to_le_bytes();
         self.le = [Byte::from(lo), Byte::from(hi)];
     }
 }
@@ -226,7 +235,7 @@ impl ops::SubAssign<u8> for Word {
 impl ops::SubAssign<usize> for Word {
     #[inline]
     fn sub_assign(&mut self, rhs: usize) {
-        let [lo, hi] = (self.as_u16() - rhs as u16).to_le_bytes();
+        let [lo, hi] = self.as_u16().wrapping_sub(rhs as u16).to_le_bytes();
         self.le = [Byte::from(lo), Byte::from(hi)];
     }
 }
@@ -281,5 +290,236 @@ where
             other => panic!("Unsupported M::SIZE {other}"),
         };
         format!("{size} @ {value:#08o}").fmt(f)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_add_basic() {
+        let a = Word::from(5u16);
+        let b = Word::from(10u16);
+        let result = a + b;
+        assert_eq!(result.as_u16(), 15);
+    }
+
+    #[test]
+    fn test_add_wrapping() {
+        // Test that addition wraps around at 16-bit boundary
+        let a = Word::from(0xFFFFu16);
+        let b = Word::from(1u16);
+        let result = a + b;
+        assert_eq!(result.as_u16(), 0);
+    }
+
+    #[test]
+    fn test_add_max_values() {
+        let a = Word::from(0xFFFFu16);
+        let b = Word::from(0xFFFFu16);
+        let result = a + b;
+        assert_eq!(result.as_u16(), 0xFFFEu16);
+    }
+
+    #[test]
+    fn test_sub_basic() {
+        let a = Word::from(10u16);
+        let b = Word::from(5u16);
+        let result = a - b;
+        assert_eq!(result.as_u16(), 5);
+    }
+
+    #[test]
+    fn test_sub_wrapping() {
+        // Test that subtraction wraps around at 16-bit boundary
+        let a = Word::from(0u16);
+        let b = Word::from(1u16);
+        let result = a - b;
+        assert_eq!(result.as_u16(), 0xFFFFu16);
+    }
+
+    #[test]
+    fn test_sub_same_values() {
+        let a = Word::from(42u16);
+        let b = Word::from(42u16);
+        let result = a - b;
+        assert_eq!(result.as_u16(), 0);
+    }
+
+    #[test]
+    fn test_add_assign_basic() {
+        let mut a = Word::from(5u16);
+        a += Word::from(10u16);
+        assert_eq!(a.as_u16(), 15);
+    }
+
+    #[test]
+    fn test_add_assign_wrapping() {
+        let mut a = Word::from(0xFFFFu16);
+        a += Word::from(1u16);
+        assert_eq!(a.as_u16(), 0);
+    }
+
+    #[test]
+    fn test_add_assign_u16() {
+        let mut a = Word::from(100u16);
+        a += 50u16;
+        assert_eq!(a.as_u16(), 150);
+    }
+
+    #[test]
+    fn test_add_assign_u16_wrapping() {
+        let mut a = Word::from(0xFFFEu16);
+        a += 5u16;
+        assert_eq!(a.as_u16(), 3);
+    }
+
+    #[test]
+    fn test_add_assign_usize() {
+        let mut a = Word::from(100u16);
+        a += 50usize;
+        assert_eq!(a.as_u16(), 150);
+    }
+
+    #[test]
+    fn test_add_assign_u8() {
+        let mut a = Word::from(100u16);
+        a += 50u8;
+        assert_eq!(a.as_u16(), 150);
+    }
+
+    #[test]
+    fn test_sub_assign_basic() {
+        let mut a = Word::from(10u16);
+        a -= Word::from(5u16);
+        assert_eq!(a.as_u16(), 5);
+    }
+
+    #[test]
+    fn test_sub_assign_wrapping() {
+        let mut a = Word::from(0u16);
+        a -= Word::from(1u16);
+        assert_eq!(a.as_u16(), 0xFFFFu16);
+    }
+
+    #[test]
+    fn test_sub_assign_u16() {
+        let mut a = Word::from(100u16);
+        a -= 50u16;
+        assert_eq!(a.as_u16(), 50);
+    }
+
+    #[test]
+    fn test_sub_assign_u16_wrapping() {
+        let mut a = Word::from(3u16);
+        a -= 5u16;
+        assert_eq!(a.as_u16(), 0xFFFEu16);
+    }
+
+    #[test]
+    fn test_sub_assign_usize() {
+        let mut a = Word::from(100u16);
+        a -= 50usize;
+        assert_eq!(a.as_u16(), 50);
+    }
+
+    #[test]
+    fn test_sub_assign_u8() {
+        let mut a = Word::from(100u16);
+        a -= 50u8;
+        assert_eq!(a.as_u16(), 50);
+    }
+
+    #[test]
+    fn test_add_vs_add_assign_consistency() {
+        // Verify that Add and AddAssign produce the same results
+        let a = Word::from(123u16);
+        let b = Word::from(456u16);
+
+        let result1 = a + b;
+
+        let mut result2 = a;
+        result2 += b;
+
+        assert_eq!(result1, result2);
+    }
+
+    #[test]
+    fn test_sub_vs_sub_assign_consistency() {
+        // Verify that Sub and SubAssign produce the same results
+        let a = Word::from(456u16);
+        let b = Word::from(123u16);
+
+        let result1 = a - b;
+
+        let mut result2 = a;
+        result2 -= b;
+
+        assert_eq!(result1, result2);
+    }
+
+    #[test]
+    fn test_add_zero_identity() {
+        let a = Word::from(42u16);
+        let zero = Word::from(0u16);
+        assert_eq!(a + zero, a);
+    }
+
+    #[test]
+    fn test_sub_zero_identity() {
+        let a = Word::from(42u16);
+        let zero = Word::from(0u16);
+        assert_eq!(a - zero, a);
+    }
+
+    #[test]
+    fn test_add_commutative() {
+        let a = Word::from(123u16);
+        let b = Word::from(456u16);
+        assert_eq!(a + b, b + a);
+    }
+
+    #[test]
+    fn test_address_arithmetic_wrapping() {
+        // Simulate PDP-11 address wrapping scenarios
+        
+        // Address at end of memory + offset
+        let base = Word::from(0xFFF0u16);
+        let offset = Word::from(0x20u16);
+        let result = base + offset;
+        assert_eq!(result.as_u16(), 0x0010u16); // Wraps to low memory
+        
+        // Address at start of memory - offset
+        let base = Word::from(0x0010u16);
+        let offset = Word::from(0x20u16);
+        let result = base - offset;
+        assert_eq!(result.as_u16(), 0xFFF0u16); // Wraps to high memory
+    }
+
+    #[test]
+    fn test_pc_increment_wrapping() {
+        // Simulate PC (Program Counter) wrapping
+        let mut pc = Word::from(0xFFFEu16);
+        pc += 2u16; // Fetch next instruction
+        assert_eq!(pc.as_u16(), 0); // PC wraps to 0
+    }
+
+    #[test]
+    fn test_multiple_operations() {
+        let mut a = Word::from(100u16);
+        a += 50u16;
+        a -= 30u16;
+        a += 10u16;
+        assert_eq!(a.as_u16(), 130);
+    }
+
+    #[test]
+    fn test_wrapping_chain() {
+        let mut a = Word::from(0xFFF0u16);
+        a += 16u16; // 0x0000
+        a += 10u16; // 0x000A
+        a -= 20u16; // 0xFFF6 (wraps)
+        assert_eq!(a.as_u16(), 0xFFF6u16);
     }
 }

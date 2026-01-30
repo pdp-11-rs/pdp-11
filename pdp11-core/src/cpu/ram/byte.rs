@@ -73,6 +73,52 @@ impl ops::BitAnd for Byte {
     }
 }
 
+impl ops::Add for Byte {
+    type Output = Self;
+
+    #[inline]
+    fn add(self, rhs: Self) -> Self::Output {
+        self.as_u8().wrapping_add(rhs.as_u8()).into()
+    }
+}
+
+impl ops::Sub for Byte {
+    type Output = Self;
+
+    #[inline]
+    fn sub(self, rhs: Self) -> Self::Output {
+        self.as_u8().wrapping_sub(rhs.as_u8()).into()
+    }
+}
+
+impl ops::AddAssign for Byte {
+    #[inline]
+    fn add_assign(&mut self, rhs: Self) {
+        self.le[0] = self.as_u8().wrapping_add(rhs.as_u8());
+    }
+}
+
+impl ops::AddAssign<u8> for Byte {
+    #[inline]
+    fn add_assign(&mut self, rhs: u8) {
+        self.le[0] = self.as_u8().wrapping_add(rhs);
+    }
+}
+
+impl ops::SubAssign for Byte {
+    #[inline]
+    fn sub_assign(&mut self, rhs: Self) {
+        self.le[0] = self.as_u8().wrapping_sub(rhs.as_u8());
+    }
+}
+
+impl ops::SubAssign<u8> for Byte {
+    #[inline]
+    fn sub_assign(&mut self, rhs: u8) {
+        self.le[0] = self.as_u8().wrapping_sub(rhs);
+    }
+}
+
 impl MemoryAcceess for Byte {
     type LittleEndian = [u8; Self::SIZE];
     const SIZE: usize = 1;
@@ -95,5 +141,170 @@ impl MemoryAcceess for Byte {
 
     fn is_negative(&self) -> bool {
         (self.le[0] as i8).is_negative()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_add_basic() {
+        let a = Byte::from(5u8);
+        let b = Byte::from(10u8);
+        let result = a + b;
+        assert_eq!(result.as_u8(), 15);
+    }
+
+    #[test]
+    fn test_add_wrapping() {
+        let a = Byte::from(0xFFu8);
+        let b = Byte::from(1u8);
+        let result = a + b;
+        assert_eq!(result.as_u8(), 0);
+    }
+
+    #[test]
+    fn test_add_max_values() {
+        let a = Byte::from(0xFFu8);
+        let b = Byte::from(0xFFu8);
+        let result = a + b;
+        assert_eq!(result.as_u8(), 0xFEu8);
+    }
+
+    #[test]
+    fn test_sub_basic() {
+        let a = Byte::from(10u8);
+        let b = Byte::from(5u8);
+        let result = a - b;
+        assert_eq!(result.as_u8(), 5);
+    }
+
+    #[test]
+    fn test_sub_wrapping() {
+        let a = Byte::from(0u8);
+        let b = Byte::from(1u8);
+        let result = a - b;
+        assert_eq!(result.as_u8(), 0xFFu8);
+    }
+
+    #[test]
+    fn test_sub_same_values() {
+        let a = Byte::from(42u8);
+        let b = Byte::from(42u8);
+        let result = a - b;
+        assert_eq!(result.as_u8(), 0);
+    }
+
+    #[test]
+    fn test_add_assign_basic() {
+        let mut a = Byte::from(5u8);
+        a += Byte::from(10u8);
+        assert_eq!(a.as_u8(), 15);
+    }
+
+    #[test]
+    fn test_add_assign_wrapping() {
+        let mut a = Byte::from(0xFFu8);
+        a += Byte::from(1u8);
+        assert_eq!(a.as_u8(), 0);
+    }
+
+    #[test]
+    fn test_add_assign_u8() {
+        let mut a = Byte::from(100u8);
+        a += 50u8;
+        assert_eq!(a.as_u8(), 150);
+    }
+
+    #[test]
+    fn test_add_assign_u8_wrapping() {
+        let mut a = Byte::from(0xFEu8);
+        a += 5u8;
+        assert_eq!(a.as_u8(), 3);
+    }
+
+    #[test]
+    fn test_sub_assign_basic() {
+        let mut a = Byte::from(10u8);
+        a -= Byte::from(5u8);
+        assert_eq!(a.as_u8(), 5);
+    }
+
+    #[test]
+    fn test_sub_assign_wrapping() {
+        let mut a = Byte::from(0u8);
+        a -= Byte::from(1u8);
+        assert_eq!(a.as_u8(), 0xFFu8);
+    }
+
+    #[test]
+    fn test_sub_assign_u8() {
+        let mut a = Byte::from(100u8);
+        a -= 50u8;
+        assert_eq!(a.as_u8(), 50);
+    }
+
+    #[test]
+    fn test_sub_assign_u8_wrapping() {
+        let mut a = Byte::from(3u8);
+        a -= 5u8;
+        assert_eq!(a.as_u8(), 0xFEu8);
+    }
+
+    #[test]
+    fn test_add_vs_add_assign_consistency() {
+        let a = Byte::from(123u8);
+        let b = Byte::from(45u8);
+
+        let result1 = a + b;
+
+        let mut result2 = a;
+        result2 += b;
+
+        assert_eq!(result1, result2);
+    }
+
+    #[test]
+    fn test_sub_vs_sub_assign_consistency() {
+        let a = Byte::from(200u8);
+        let b = Byte::from(50u8);
+
+        let result1 = a - b;
+
+        let mut result2 = a;
+        result2 -= b;
+
+        assert_eq!(result1, result2);
+    }
+
+    #[test]
+    fn test_add_zero_identity() {
+        let a = Byte::from(42u8);
+        let zero = Byte::from(0u8);
+        assert_eq!(a + zero, a);
+    }
+
+    #[test]
+    fn test_sub_zero_identity() {
+        let a = Byte::from(42u8);
+        let zero = Byte::from(0u8);
+        assert_eq!(a - zero, a);
+    }
+
+    #[test]
+    fn test_add_commutative() {
+        let a = Byte::from(123u8);
+        let b = Byte::from(45u8);
+        assert_eq!(a + b, b + a);
+    }
+
+    #[test]
+    fn test_byte_wrapping_chain() {
+        let mut a = Byte::from(0xF0u8);
+        a += 16u8; // 0x00
+        a += 10u8; // 0x0A
+        a -= 20u8; // 0xF6 (wraps)
+        assert_eq!(a.as_u8(), 0xF6u8);
     }
 }
