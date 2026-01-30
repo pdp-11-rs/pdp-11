@@ -404,29 +404,35 @@ impl Cpu {
     }
 
     /// Check if an address is in RK11 I/O space
+    #[allow(dead_code)]
     fn is_rk_io(&self, address: Address<Word>) -> bool {
         use mmio::MmioDevice;
         self.rk.handles_word_address(address)
     }
 
     /// Check if an address is in any MMIO space
+    #[allow(dead_code)]
     fn is_mmio(&self, address: Address<Word>) -> bool {
         self.mmio.is_io_space_word(address)
     }
 
     /// Read from MMIO device (word)
+    #[allow(dead_code)]
     fn read_mmio_word(&mut self, address: Address<Word>) -> Word {
         use mmio::MmioDevice;
         if self.console.handles_word_address(address) {
             self.console.read_word(address)
         } else if self.rk.handles_word_address(address) {
             self.rk.read_word(address)
+        } else if self.kw11.handles_word_address(address) {
+            self.kw11.read_word(address)
         } else {
             Word::zero() // Unimplemented I/O address
         }
     }
 
     /// Write to MMIO device (word)
+    #[allow(dead_code)]
     fn write_mmio_word(&mut self, address: Address<Word>, value: Word) {
         use mmio::MmioDevice;
         if self.console.handles_word_address(address) {
@@ -437,22 +443,28 @@ impl Cpu {
             if address == rk::RKCS {
                 self.rk.execute_pending_command(&mut self.ram);
             }
+        } else if self.kw11.handles_word_address(address) {
+            self.kw11.write_word(address, value);
         }
     }
 
     /// Read from MMIO device (byte)
+    #[allow(dead_code)]
     fn read_mmio_byte(&mut self, address: Address<Byte>) -> Byte {
         use mmio::MmioDevice;
         if self.console.handles_byte_address(address) {
             self.console.read_byte(address)
         } else if self.rk.handles_byte_address(address) {
             self.rk.read_byte(address)
+        } else if self.kw11.handles_byte_address(address) {
+            self.kw11.read_byte(address)
         } else {
             Byte::zero() // Unimplemented I/O address
         }
     }
 
     /// Write to MMIO device (byte)
+    #[allow(dead_code)]
     fn write_mmio_byte(&mut self, address: Address<Byte>, value: Byte) {
         use mmio::MmioDevice;
         if self.console.handles_byte_address(address) {
@@ -464,6 +476,8 @@ impl Cpu {
             if word_addr == rk::RKCS {
                 self.rk.execute_pending_command(&mut self.ram);
             }
+        } else if self.kw11.handles_byte_address(address) {
+            self.kw11.write_byte(address, value);
         }
     }
 

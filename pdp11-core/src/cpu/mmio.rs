@@ -4,6 +4,7 @@ use super::*;
 ///
 /// Peripherals implement this trait to handle reads and writes
 /// to their memory-mapped registers.
+#[allow(dead_code)]
 pub trait MmioDevice {
     /// Read a word from a device register
     fn read_word(&mut self, address: Address<Word>) -> Word;
@@ -72,11 +73,13 @@ pub trait MmioDevice {
 /// The PDP-11 typically uses the upper 4KB (0o160000-0o177777)
 /// for memory-mapped I/O devices.
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct MmioSpace {
     /// Standard I/O page start address
     pub io_page_start: u16,
 }
 
+#[allow(dead_code)]
 impl MmioSpace {
     /// Create a new MMIO space with standard I/O page
     pub fn new() -> Self {

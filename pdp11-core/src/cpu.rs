@@ -13,6 +13,7 @@ mod bootrom;
 mod console;
 mod impls;
 mod insns;
+mod kw11;
 mod mmio;
 mod psw;
 mod ram;
@@ -20,6 +21,7 @@ mod register;
 mod rk;
 
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct Cpu {
     halt: bool,
     registers: Registers,
@@ -27,6 +29,7 @@ pub struct Cpu {
     ram: Ram,
     rk: rk::Rk,
     console: console::Console,
+    kw11: kw11::Kw11,
     mmio: mmio::MmioSpace,
     /// Temporary storage for memory-mapped I/O register reads
     /// This allows returning references to RK11 registers
@@ -74,6 +77,7 @@ impl Cpu {
     pub fn new(rk: impl AsRef<Path>) -> io::Result<Self> {
         let rk = rk::Rk::with_image(rk)?;
         let console = console::Console::new();
+        let kw11 = kw11::Kw11::new();
         let mut ram = Ram::default();
 
         // Initialize peripheral registers in RAM
@@ -87,6 +91,7 @@ impl Cpu {
             ram,
             rk,
             console,
+            kw11,
             mmio: mmio::MmioSpace::new(),
             io_temp: Word::zero(),
             io_temp_byte: Byte::zero(),
@@ -101,6 +106,7 @@ impl Cpu {
     pub fn for_testing() -> Self {
         let rk = rk::Rk::empty();
         let console = console::Console::new();
+        let kw11 = kw11::Kw11::new();
         let mut ram = Ram::default();
 
         // Initialize peripheral registers in RAM
@@ -114,6 +120,7 @@ impl Cpu {
             ram,
             rk,
             console,
+            kw11,
             mmio: mmio::MmioSpace::new(),
             io_temp: Word::zero(),
             io_temp_byte: Byte::zero(),
@@ -978,10 +985,32 @@ impl Cpu {
     /// Check for pending peripheral interrupts
     /// Returns (vector, priority) if interrupt should be serviced
     pub fn check_interrupts(&mut self) -> Option<(u16, u8)> {
-        // Check console interrupts (vector 060, priority 4)
-        // Check RK11 interrupts (vector 0220, priority 5)
-        // For now, return None - peripherals will need to signal interrupts
+        // Check interrupts in priority order (highest first)
+
+        // Priority 6: KW11-L line clock (vector 0o100)
+        if self.kw11.interrupt_pending() {
+            return Some((kw11::KW11_VECTOR, kw11::KW11_PRIORITY));
+        }
+
+        // Priority 5: RK11 disk (vector 0o220)
+        // TODO: Add RK11 interrupt support
+
+        // Priority 4: Console (vector 0o060)
+        // TODO: Add console interrupt support
+
         None
+    }
+
+    /// Tick the KW11-L line clock
+    /// Should be called periodically (e.g., every ~16.67ms for 60Hz)
+    /// Returns true if an interrupt was generated
+    pub fn tick_kw11(&mut self) -> bool {
+        self.kw11.tick()
+    }
+
+    /// Clear KW11-L interrupt (called after servicing)
+    pub fn clear_kw11_interrupt(&mut self) {
+        self.kw11.clear_interrupt();
     }
 }
 
