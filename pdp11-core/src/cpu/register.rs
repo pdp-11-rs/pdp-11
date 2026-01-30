@@ -70,7 +70,7 @@ impl Registers {
     where
         M: MemoryAcceess,
     {
-        self[register] += M::SIZE;
+        self[register] -= M::SIZE;
         self[register]
     }
 

@@ -483,13 +483,13 @@ mod tests {
     #[test]
     fn test_address_arithmetic_wrapping() {
         // Simulate PDP-11 address wrapping scenarios
-        
+
         // Address at end of memory + offset
         let base = Word::from(0xFFF0u16);
         let offset = Word::from(0x20u16);
         let result = base + offset;
         assert_eq!(result.as_u16(), 0x0010u16); // Wraps to low memory
-        
+
         // Address at start of memory - offset
         let base = Word::from(0x0010u16);
         let offset = Word::from(0x20u16);

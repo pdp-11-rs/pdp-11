@@ -102,7 +102,6 @@ fn test_jmp_autodecrement() {
 }
 
 #[test]
-#[ignore] // Index mode not yet implemented
 fn test_jmp_index() {
     let mut cpu = create_test_cpu();
     // Set up PC for index mode (it will be used to read the index value)
@@ -125,7 +124,6 @@ fn test_jmp_index() {
 }
 
 #[test]
-#[ignore] // Index mode not yet implemented
 fn test_jmp_pc_relative() {
     let mut cpu = create_test_cpu();
     // Set up PC

@@ -145,8 +145,22 @@ impl Cpu {
 
     /// JMP instruction: transfer control to the effective address
     fn jmp(&mut self, src: Operand) {
-        let effective_addr = self.effective_address(src);
-        self.registers[PC] = effective_addr;
+        use RegisterAddressingMode::*;
+
+        // For most modes, JMP uses effective_address
+        // But for Autoincrement/Autodecrement, we need to read the value from memory
+        let target = match src.mode {
+            Autoincrement | Autodecrement | AutoincrementDeferred | AutodecrementDeferred => {
+                // For these modes, read the target address from memory
+                *self.word(src)
+            }
+            _ => {
+                // For other modes, use the effective address directly
+                self.effective_address(src)
+            }
+        };
+
+        self.registers[PC] = target;
     }
 
     fn swab(&mut self, dst: Operand) {
