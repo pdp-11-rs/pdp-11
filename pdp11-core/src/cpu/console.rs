@@ -21,17 +21,17 @@ pub const XCSR: Address<Word> = Address::from_u16(0o177564);
 pub const XBUF: Address<Word> = Address::from_u16(0o177566);
 
 // Status register bits
-const READER_ENABLE: u16 = 0o000001; // Receiver enable
-const READER_DONE: u16 = 0o000200; // Receiver done (data available)
-const XMIT_READY: u16 = 0o000200; // Transmitter ready
+const READER_ENABLE: Word = Word::from_u16(0o000001); // Receiver enable
+const READER_DONE: Word = Word::from_u16(0o000200); // Receiver done (data available)
+const XMIT_READY: Word = Word::from_u16(0o000200); // Transmitter ready
 
 impl Console {
     /// Create a new console with default state
     pub fn new() -> Self {
         Self {
-            rcsr: Word::from(READER_ENABLE),
+            rcsr: READER_ENABLE,
             rbuf: Word::zero(),
-            xcsr: Word::from(XMIT_READY), // Transmitter always ready initially
+            xcsr: XMIT_READY, // Transmitter always ready initially
             xbuf: Word::zero(),
         }
     }
@@ -55,9 +55,7 @@ impl Console {
             RBUF => {
                 // Reading RBUF clears the DONE bit
                 let data = self.rbuf;
-                let mut rcsr_val = self.rcsr.as_u16();
-                rcsr_val &= !READER_DONE;
-                self.rcsr = Word::from(rcsr_val);
+                self.rcsr = self.rcsr & !READER_DONE;
                 data
             }
             XCSR => self.xcsr,
@@ -71,9 +69,7 @@ impl Console {
         match address {
             RCSR => {
                 // Only certain bits are writable (enable bit)
-                let mut rcsr_val = self.rcsr.as_u16();
-                rcsr_val = (rcsr_val & !READER_ENABLE) | (value.as_u16() & READER_ENABLE);
-                self.rcsr = Word::from(rcsr_val);
+                self.rcsr = (self.rcsr & !READER_ENABLE) | (value & READER_ENABLE);
             }
             RBUF => {
                 // RBUF is read-only, ignore writes
@@ -86,7 +82,7 @@ impl Console {
                 // Write character to output
                 self.output_char(value);
                 // Transmitter remains ready
-                self.xcsr = Word::from(XMIT_READY);
+                self.xcsr = XMIT_READY;
             }
             _ => {}
         }
@@ -112,9 +108,7 @@ impl Console {
     #[cfg(test)]
     pub fn input_char(&mut self, ch: u8) {
         self.rbuf = Word::from(ch as u16);
-        let mut rcsr_val = self.rcsr.as_u16();
-        rcsr_val |= READER_DONE;
-        self.rcsr = Word::from(rcsr_val);
+        self.rcsr = self.rcsr | READER_DONE;
     }
 }
 

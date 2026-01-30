@@ -108,7 +108,7 @@ impl Word {
     }
 
     #[inline]
-    const fn from_u16(value: u16) -> Self {
+    pub const fn from_u16(value: u16) -> Self {
         let [lo, hi] = value.to_le_bytes();
         let le = [Byte::from_u8(lo), Byte::from_u8(hi)];
         Self { le }

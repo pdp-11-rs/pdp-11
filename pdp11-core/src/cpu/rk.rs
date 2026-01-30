@@ -21,9 +21,9 @@ pub const RKBA: Address<Word> = Address::from_u16(0o177410);
 pub const RKDA: Address<Word> = Address::from_u16(0o177412);
 
 // RKCS bits
-const GO: u16 = 0o000001; // Start operation
-const FUNC_READ: u16 = 0o000004; // Read function
-const READY: u16 = 0o000200; // Controller ready
+const GO: Word = Word::from_u16(0o000001); // Start operation
+const FUNC_READ: Word = Word::from_u16(0o000004); // Read function
+const READY: Word = Word::from_u16(0o000200); // Controller ready
 
 impl Rk {
     pub fn with_image(image: impl AsRef<Path>) -> io::Result<Self> {
@@ -45,9 +45,9 @@ impl Rk {
 
     /// Initialize RK11 registers in RAM
     pub fn init_registers(&self, ram: &mut Ram) {
-        ram.write_direct(RKDS, Word::from(READY)); // Drive ready
+        ram.write_direct(RKDS, READY); // Drive ready
         ram.write_direct(RKER, Word::zero());
-        ram.write_direct(RKCS, Word::from(READY)); // Controller ready
+        ram.write_direct(RKCS, READY); // Controller ready
         ram.write_direct(RKWC, Word::zero());
         ram.write_direct(RKBA, Word::zero());
         ram.write_direct(RKDA, Word::zero());
@@ -58,20 +58,20 @@ impl Rk {
         let rkcs = ram[RKCS];
 
         // Check if GO bit is set
-        if rkcs.as_u16() & GO != 0 {
+        if (rkcs & GO) != Word::zero() {
             self.execute_command(ram);
         }
     }
 
     /// Execute RK11 command when GO bit is set
     fn execute_command(&mut self, ram: &mut Ram) {
-        let cmd = ram[RKCS].as_u16() & 0o000016; // Function code bits 1-3
+        let cmd = ram[RKCS] & Word::from_u16(0o000016); // Function code bits 1-3
 
         match cmd {
             FUNC_READ => self.read_sector(ram),
             _ => {
-                eprintln!("Unsupported RK11 command: {cmd:#08o}");
-                ram.write_direct(RKCS, Word::from(READY)); // Set ready, clear GO
+                eprintln!("Unsupported RK11 command: {:#08o}", cmd.as_u16());
+                ram.write_direct(RKCS, READY); // Set ready, clear GO
             }
         }
     }
@@ -121,7 +121,7 @@ impl Rk {
         // Update registers after transfer
         ram.write_direct(RKWC, Word::from(wc));
         ram.write_direct(RKBA, Word::from(ba));
-        ram.write_direct(RKCS, Word::from(READY)); // Set ready, clear GO
+        ram.write_direct(RKCS, READY); // Set ready, clear GO
     }
 }
 
