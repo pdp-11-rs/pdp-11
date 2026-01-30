@@ -172,27 +172,17 @@ impl Cpu {
             Asr(dst) => self.asr(dst),
             Jsr(register, dst) => self.jsr(register, dst),
             Rts(register) => self.rts(register),
-            Nop => {} // No operation
-            Clc => self.psw[C] = false,
-            Sec => self.psw[C] = true,
-            Clv => self.psw[V] = false,
-            Sev => self.psw[V] = true,
-            Clz => self.psw[Z] = false,
-            Sez => self.psw[Z] = true,
-            Cln => self.psw[N] = false,
-            Sen => self.psw[N] = true,
-            Ccc => {
-                self.psw[N] = false;
-                self.psw[Z] = false;
-                self.psw[V] = false;
-                self.psw[C] = false;
-            }
-            Scc => {
-                self.psw[N] = true;
-                self.psw[Z] = true;
-                self.psw[V] = true;
-                self.psw[C] = true;
-            }
+            Nop => self.nop(),
+            Clc => self.clc(),
+            Sec => self.sec(),
+            Clv => self.clv(),
+            Sev => self.sev(),
+            Clz => self.clz(),
+            Sez => self.sez(),
+            Cln => self.cln(),
+            Sen => self.sen(),
+            Ccc => self.ccc(),
+            Scc => self.scc(),
             Invalid(opcode) => eprintln!("Opcode {opcode:#08o} is not supported yet"),
         }
     }
@@ -677,6 +667,66 @@ impl Cpu {
         self.psw[Z] = result.is_zero();
         self.psw[C] = new_carry != 0;
         self.psw[V] = self.psw[N] != self.psw[C]; // N xor C
+    }
+
+    fn nop(&mut self) {
+        // NOP: No operation
+    }
+
+    fn clc(&mut self) {
+        // CLC: Clear Carry
+        self.psw[C] = false;
+    }
+
+    fn sec(&mut self) {
+        // SEC: Set Carry
+        self.psw[C] = true;
+    }
+
+    fn clv(&mut self) {
+        // CLV: Clear Overflow
+        self.psw[V] = false;
+    }
+
+    fn sev(&mut self) {
+        // SEV: Set Overflow
+        self.psw[V] = true;
+    }
+
+    fn clz(&mut self) {
+        // CLZ: Clear Zero
+        self.psw[Z] = false;
+    }
+
+    fn sez(&mut self) {
+        // SEZ: Set Zero
+        self.psw[Z] = true;
+    }
+
+    fn cln(&mut self) {
+        // CLN: Clear Negative
+        self.psw[N] = false;
+    }
+
+    fn sen(&mut self) {
+        // SEN: Set Negative
+        self.psw[N] = true;
+    }
+
+    fn ccc(&mut self) {
+        // CCC: Clear All Condition Codes
+        self.psw[N] = false;
+        self.psw[Z] = false;
+        self.psw[V] = false;
+        self.psw[C] = false;
+    }
+
+    fn scc(&mut self) {
+        // SCC: Set All Condition Codes
+        self.psw[N] = true;
+        self.psw[Z] = true;
+        self.psw[V] = true;
+        self.psw[C] = true;
     }
 }
 
