@@ -68,10 +68,10 @@ impl Cpu {
     pub fn new(rk: impl AsRef<Path>) -> io::Result<Self> {
         let mut rk = rk::Rk::with_image(rk)?;
         let mut ram = Ram::default();
-        
+
         // Initialize RK11 registers in RAM
         rk.init_registers(&mut ram);
-        
+
         let core = Self {
             halt: false,
             registers: Registers::default(),
@@ -117,7 +117,19 @@ impl Cpu {
             Bit(src, dst) => self.bit(src, dst),
             Add(src, dst) => self.add(src, dst),
             Sub(src, dst) => self.sub(src, dst),
+            Br(offset) => self.br(offset),
+            Bne(offset) => self.bne(offset),
+            Beq(offset) => self.beq(offset),
             Bpl(offset) => self.bpl(offset),
+            Bmi(offset) => self.bmi(offset),
+            Bvc(offset) => self.bvc(offset),
+            Bvs(offset) => self.bvs(offset),
+            Bcc(offset) => self.bcc(offset),
+            Bcs(offset) => self.bcs(offset),
+            Bge(offset) => self.bge(offset),
+            Blt(offset) => self.blt(offset),
+            Bgt(offset) => self.bgt(offset),
+            Ble(offset) => self.ble(offset),
             Tstb(src) => self.tstb(src),
             Invalid(opcode) => eprintln!("Opcode {opcode:#08o} is not supported yet"),
         }
@@ -278,13 +290,103 @@ impl Cpu {
         self.psw[V] = src_sign != dst_sign && dst_sign != result_sign;
     }
 
-    fn bpl(&mut self, offset: Offset) {
-        let positive = offset.0.is_positive();
-        let offset = (offset.0.abs() * 2) as u8;
-        if positive {
-            self.registers[PC] += offset;
+    fn branch(&mut self, offset: Offset) {
+        // Offset is a signed byte offset in words (not bytes)
+        // PC is already pointing to the next instruction
+        let offset_words = offset.0 as i16 * 2;
+        if offset_words >= 0 {
+            self.registers[PC] += offset_words as u16;
         } else {
-            self.registers[PC] -= offset;
+            self.registers[PC] -= offset_words.unsigned_abs();
+        }
+    }
+
+    fn br(&mut self, offset: Offset) {
+        // Branch unconditionally
+        self.branch(offset);
+    }
+
+    fn bne(&mut self, offset: Offset) {
+        // Branch if Not Equal (Z = 0)
+        if !self.psw[Z] {
+            self.branch(offset);
+        }
+    }
+
+    fn beq(&mut self, offset: Offset) {
+        // Branch if Equal (Z = 1)
+        if self.psw[Z] {
+            self.branch(offset);
+        }
+    }
+
+    fn bpl(&mut self, offset: Offset) {
+        // Branch if Plus (N = 0)
+        if !self.psw[N] {
+            self.branch(offset);
+        }
+    }
+
+    fn bmi(&mut self, offset: Offset) {
+        // Branch if Minus (N = 1)
+        if self.psw[N] {
+            self.branch(offset);
+        }
+    }
+
+    fn bvc(&mut self, offset: Offset) {
+        // Branch if oVerflow Clear (V = 0)
+        if !self.psw[V] {
+            self.branch(offset);
+        }
+    }
+
+    fn bvs(&mut self, offset: Offset) {
+        // Branch if oVerflow Set (V = 1)
+        if self.psw[V] {
+            self.branch(offset);
+        }
+    }
+
+    fn bcc(&mut self, offset: Offset) {
+        // Branch if Carry Clear (C = 0)
+        if !self.psw[C] {
+            self.branch(offset);
+        }
+    }
+
+    fn bcs(&mut self, offset: Offset) {
+        // Branch if Carry Set (C = 1)
+        if self.psw[C] {
+            self.branch(offset);
+        }
+    }
+
+    fn bge(&mut self, offset: Offset) {
+        // Branch if Greater or Equal (N xor V = 0)
+        if self.psw[N] == self.psw[V] {
+            self.branch(offset);
+        }
+    }
+
+    fn blt(&mut self, offset: Offset) {
+        // Branch if Less Than (N xor V = 1)
+        if self.psw[N] != self.psw[V] {
+            self.branch(offset);
+        }
+    }
+
+    fn bgt(&mut self, offset: Offset) {
+        // Branch if Greater Than (Z = 0 and (N xor V = 0))
+        if !self.psw[Z] && self.psw[N] == self.psw[V] {
+            self.branch(offset);
+        }
+    }
+
+    fn ble(&mut self, offset: Offset) {
+        // Branch if Less or Equal (Z = 1 or (N xor V = 1))
+        if self.psw[Z] || self.psw[N] != self.psw[V] {
+            self.branch(offset);
         }
     }
 

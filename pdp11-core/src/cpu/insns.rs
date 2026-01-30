@@ -15,7 +15,20 @@ pub enum Instruction {
     Bit(Operand, Operand),
     Add(Operand, Operand),
     Sub(Operand, Operand),
-    Bpl(Offset),
+    // Branch instructions
+    Br(Offset),   // Branch (unconditional)
+    Bne(Offset),  // Branch if Not Equal (Z=0)
+    Beq(Offset),  // Branch if Equal (Z=1)
+    Bpl(Offset),  // Branch if Plus (N=0)
+    Bmi(Offset),  // Branch if Minus (N=1)
+    Bvc(Offset),  // Branch if oVerflow Clear (V=0)
+    Bvs(Offset),  // Branch if oVerflow Set (V=1)
+    Bcc(Offset),  // Branch if Carry Clear (C=0)
+    Bcs(Offset),  // Branch if Carry Set (C=1)
+    Bge(Offset),  // Branch if Greater or Equal (N xor V = 0)
+    Blt(Offset),  // Branch if Less Than (N xor V = 1)
+    Bgt(Offset),  // Branch if Greater Than (Z or (N xor V) = 0)
+    Ble(Offset),  // Branch if Less or Equal (Z or (N xor V) = 1)
     Tstb(Operand),
     Invalid(u16),
 }
@@ -76,9 +89,61 @@ impl Instruction {
         Self::Sub(src, dst)
     }
 
-    fn bpl(opcode: u16) -> Self {
+    fn branch_offset(opcode: u16) -> Offset {
         let offset = opcode.to_le_bytes()[0] as i8;
-        Self::Bpl(Offset(offset))
+        Offset(offset)
+    }
+
+    fn br(opcode: u16) -> Self {
+        Self::Br(Self::branch_offset(opcode))
+    }
+
+    fn bne(opcode: u16) -> Self {
+        Self::Bne(Self::branch_offset(opcode))
+    }
+
+    fn beq(opcode: u16) -> Self {
+        Self::Beq(Self::branch_offset(opcode))
+    }
+
+    fn bpl(opcode: u16) -> Self {
+        Self::Bpl(Self::branch_offset(opcode))
+    }
+
+    fn bmi(opcode: u16) -> Self {
+        Self::Bmi(Self::branch_offset(opcode))
+    }
+
+    fn bvc(opcode: u16) -> Self {
+        Self::Bvc(Self::branch_offset(opcode))
+    }
+
+    fn bvs(opcode: u16) -> Self {
+        Self::Bvs(Self::branch_offset(opcode))
+    }
+
+    fn bcc(opcode: u16) -> Self {
+        Self::Bcc(Self::branch_offset(opcode))
+    }
+
+    fn bcs(opcode: u16) -> Self {
+        Self::Bcs(Self::branch_offset(opcode))
+    }
+
+    fn bge(opcode: u16) -> Self {
+        Self::Bge(Self::branch_offset(opcode))
+    }
+
+    fn blt(opcode: u16) -> Self {
+        Self::Blt(Self::branch_offset(opcode))
+    }
+
+    fn bgt(opcode: u16) -> Self {
+        Self::Bgt(Self::branch_offset(opcode))
+    }
+
+    fn ble(opcode: u16) -> Self {
+        Self::Ble(Self::branch_offset(opcode))
     }
 
     fn tstb(opcode: u16) -> Self {
@@ -102,7 +167,19 @@ impl Instruction {
             Bit(src, dst) => format!("BIT\t{src}, {dst}"),
             Add(src, dst) => format!("ADD\t{src}, {dst}"),
             Sub(src, dst) => format!("SUB\t{src}, {dst}"),
+            Br(offset) => format!("BR\t{offset}"),
+            Bne(offset) => format!("BNE\t{offset}"),
+            Beq(offset) => format!("BEQ\t{offset}"),
             Bpl(offset) => format!("BPL\t{offset}"),
+            Bmi(offset) => format!("BMI\t{offset}"),
+            Bvc(offset) => format!("BVC\t{offset}"),
+            Bvs(offset) => format!("BVS\t{offset}"),
+            Bcc(offset) => format!("BCC\t{offset}"),
+            Bcs(offset) => format!("BCS\t{offset}"),
+            Bge(offset) => format!("BGE\t{offset}"),
+            Blt(offset) => format!("BLT\t{offset}"),
+            Bgt(offset) => format!("BGT\t{offset}"),
+            Ble(offset) => format!("BLE\t{offset}"),
             Tstb(src) => format!("TSTB\t{src}"),
             Invalid(opcode) => format!("Invalid opcode {opcode:#08o}"),
         }
@@ -126,7 +203,20 @@ impl From<Word> for Instruction {
             opcode @ 0o030000..=0o037777 => Self::bit(opcode),
             opcode @ 0o060000..=0o067777 => Self::add(opcode),
             opcode @ 0o160000..=0o167777 => Self::sub(opcode),
+            // Branch instructions (all use low 8 bits as signed offset)
+            opcode @ 0o000400..=0o000777 => Self::br(opcode),
+            opcode @ 0o001000..=0o001377 => Self::bne(opcode),
+            opcode @ 0o001400..=0o001777 => Self::beq(opcode),
             opcode @ 0o100000..=0o100377 => Self::bpl(opcode),
+            opcode @ 0o100400..=0o100777 => Self::bmi(opcode),
+            opcode @ 0o102000..=0o102377 => Self::bvc(opcode),
+            opcode @ 0o102400..=0o102777 => Self::bvs(opcode),
+            opcode @ 0o103000..=0o103377 => Self::bcc(opcode),
+            opcode @ 0o103400..=0o103777 => Self::bcs(opcode),
+            opcode @ 0o002000..=0o002377 => Self::bge(opcode),
+            opcode @ 0o002400..=0o002777 => Self::blt(opcode),
+            opcode @ 0o003000..=0o003377 => Self::bgt(opcode),
+            opcode @ 0o003400..=0o003777 => Self::ble(opcode),
             opcode @ 0o105700..=0o105777 => Self::tstb(opcode),
             other => Instruction::Invalid(other),
         }
