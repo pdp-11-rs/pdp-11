@@ -68,7 +68,7 @@ impl From<u16> for RegisterAddressingMode {
 
 impl Cpu {
     pub fn new(rk: impl AsRef<Path>) -> io::Result<Self> {
-        let mut rk = rk::Rk::with_image(rk)?;
+        let rk = rk::Rk::with_image(rk)?;
         let console = console::Console::new();
         let mut ram = Ram::default();
 
@@ -93,7 +93,7 @@ impl Cpu {
     /// This avoids the need for temporary files in tests
     #[cfg(test)]
     pub fn for_testing() -> Self {
-        let mut rk = rk::Rk::empty();
+        let rk = rk::Rk::empty();
         let console = console::Console::new();
         let mut ram = Ram::default();
 
@@ -170,6 +170,21 @@ impl Cpu {
             Ror(dst) => self.ror(dst),
             Rol(dst) => self.rol(dst),
             Asr(dst) => self.asr(dst),
+            Clrb(dst) => self.clrb(dst),
+            Comb(dst) => self.comb(dst),
+            Incb(dst) => self.incb(dst),
+            Decb(dst) => self.decb(dst),
+            Negb(dst) => self.negb(dst),
+            Adcb(dst) => self.adcb(dst),
+            Sbcb(dst) => self.sbcb(dst),
+            Rorb(dst) => self.rorb(dst),
+            Rolb(dst) => self.rolb(dst),
+            Asrb(dst) => self.asrb(dst),
+            Movb(src, dst) => self.movb(src, dst),
+            Cmpb(src, dst) => self.cmpb(src, dst),
+            Bitb(src, dst) => self.bitb(src, dst),
+            Bicb(src, dst) => self.bicb(src, dst),
+            Bisb(src, dst) => self.bisb(src, dst),
             Jsr(register, dst) => self.jsr(register, dst),
             Rts(register) => self.rts(register),
             Nop => self.nop(),
@@ -727,6 +742,185 @@ impl Cpu {
         self.psw[Z] = true;
         self.psw[V] = true;
         self.psw[C] = true;
+    }
+
+    // Byte instructions
+
+    fn clrb(&mut self, dst: Operand) {
+        self.byte_mut(dst).clear();
+        self.psw[Z] = true;
+        self.psw[N] = false;
+        self.psw[V] = false;
+        self.psw[C] = false;
+    }
+
+    fn comb(&mut self, dst: Operand) {
+        // COMB: Complement byte (one's complement)
+        let result = !*self.byte(dst);
+        *self.byte_mut(dst) = result;
+        self.psw[N] = result.is_negative();
+        self.psw[Z] = result.is_zero();
+        self.psw[V] = false;
+        self.psw[C] = true; // Always set
+    }
+
+    fn incb(&mut self, dst: Operand) {
+        // INCB: Increment byte
+        let value = *self.byte(dst);
+        let result = value + 1u8.into();
+        *self.byte_mut(dst) = result;
+        self.psw[N] = result.is_negative();
+        self.psw[Z] = result.is_zero();
+        self.psw[V] = value == 0o177u8.into(); // Overflow from max positive
+    }
+
+    fn decb(&mut self, dst: Operand) {
+        // DECB: Decrement byte
+        let value = *self.byte(dst);
+        let result = value - 1u8.into();
+        *self.byte_mut(dst) = result;
+        self.psw[N] = result.is_negative();
+        self.psw[Z] = result.is_zero();
+        self.psw[V] = value == 0o200u8.into(); // Overflow from min negative
+    }
+
+    fn negb(&mut self, dst: Operand) {
+        // NEGB: Negate byte (two's complement)
+        let value = *self.byte(dst);
+        let result = Byte::from(0u8.wrapping_sub(value.as_u8()));
+        *self.byte_mut(dst) = result;
+        self.psw[N] = result.is_negative();
+        self.psw[Z] = result.is_zero();
+        self.psw[V] = value == 0o200u8.into(); // Overflow from min negative
+        self.psw[C] = !result.is_zero(); // Clear if result is zero
+    }
+
+    fn adcb(&mut self, dst: Operand) {
+        // ADCB: Add Carry to byte
+        let value = *self.byte(dst);
+        let carry = if self.psw[C] { 1u8 } else { 0u8 };
+        let result = value + carry.into();
+        *self.byte_mut(dst) = result;
+        self.psw[N] = result.is_negative();
+        self.psw[Z] = result.is_zero();
+        // Overflow if carry=1, value=0177 (max positive)
+        self.psw[V] = carry == 1 && value == 0o177u8.into();
+        // Carry if value=0377 and carry=1
+        self.psw[C] = carry == 1 && value == 0o377u8.into();
+    }
+
+    fn sbcb(&mut self, dst: Operand) {
+        // SBCB: Subtract Carry from byte
+        let value = *self.byte(dst);
+        let carry = if self.psw[C] { 1u8 } else { 0u8 };
+        let result = value - carry.into();
+        *self.byte_mut(dst) = result;
+        self.psw[N] = result.is_negative();
+        self.psw[Z] = result.is_zero();
+        // Overflow if carry=1, value=0200 (min negative)
+        self.psw[V] = carry == 1 && value == 0o200u8.into();
+        // Carry set if result borrows (value was 0 and carry was 1)
+        self.psw[C] = carry == 1 && value.is_zero();
+    }
+
+    fn rorb(&mut self, dst: Operand) {
+        // RORB: Rotate Right byte through carry
+        let value = *self.byte(dst);
+        let old_carry = if self.psw[C] { 1u8 } else { 0u8 };
+        let new_carry = value.as_u8() & 1;
+        let result = Byte::from((value.as_u8() >> 1) | (old_carry << 7));
+        *self.byte_mut(dst) = result;
+        self.psw[N] = result.is_negative();
+        self.psw[Z] = result.is_zero();
+        self.psw[C] = new_carry != 0;
+        self.psw[V] = self.psw[N] != self.psw[C]; // N xor C
+    }
+
+    fn rolb(&mut self, dst: Operand) {
+        // ROLB: Rotate Left byte through carry
+        let value = *self.byte(dst);
+        let old_carry = if self.psw[C] { 1u8 } else { 0u8 };
+        let new_carry = (value.as_u8() >> 7) & 1;
+        let result = Byte::from((value.as_u8() << 1) | old_carry);
+        *self.byte_mut(dst) = result;
+        self.psw[N] = result.is_negative();
+        self.psw[Z] = result.is_zero();
+        self.psw[C] = new_carry != 0;
+        self.psw[V] = self.psw[N] != self.psw[C]; // N xor C
+    }
+
+    fn asrb(&mut self, dst: Operand) {
+        // ASRB: Arithmetic Shift Right byte (sign-extend)
+        let value = *self.byte(dst);
+        let sign_bit = value.as_u8() & 0o200;
+        let new_carry = value.as_u8() & 1;
+        let result = Byte::from((value.as_u8() >> 1) | sign_bit);
+        *self.byte_mut(dst) = result;
+        self.psw[N] = result.is_negative();
+        self.psw[Z] = result.is_zero();
+        self.psw[C] = new_carry != 0;
+        self.psw[V] = self.psw[N] != self.psw[C]; // N xor C
+    }
+
+    fn movb(&mut self, src: Operand, dst: Operand) {
+        let byte = *self.byte(src);
+        *self.byte_mut(dst) = byte;
+        self.psw[N] = byte.is_negative();
+        self.psw[Z] = byte.is_zero();
+        self.psw[V] = false;
+    }
+
+    fn cmpb(&mut self, src: Operand, dst: Operand) {
+        let src = *self.byte(src);
+        let dst = *self.byte(dst);
+        let cmp = src - dst;
+        self.psw[Z] = cmp.is_zero();
+        self.psw[N] = cmp.is_negative();
+
+        // CMPB performs src - dst, so calculate flags using subtraction logic
+        let src_u8 = src.as_u8();
+        let dst_u8 = dst.as_u8();
+        let (result_u8, borrow) = src_u8.overflowing_sub(dst_u8);
+        self.psw[C] = borrow;
+
+        // Overflow occurs when subtracting opposite signs produces result of wrong sign
+        let src_sign = src_u8 & 0x80 != 0;
+        let dst_sign = dst_u8 & 0x80 != 0;
+        let result_sign = result_u8 & 0x80 != 0;
+        self.psw[V] = src_sign != dst_sign && src_sign != result_sign;
+    }
+
+    fn bitb(&mut self, src: Operand, dst: Operand) {
+        let src = *self.byte(src);
+        let dst = *self.byte(dst);
+        let bit = src & dst;
+        self.psw[Z] = bit.is_zero();
+        self.psw[N] = bit.is_negative();
+        self.psw[V] = false;
+    }
+
+    fn bicb(&mut self, src: Operand, dst: Operand) {
+        // BICB: Bit Clear Byte - dst = dst & ~src
+        let src = *self.byte(src);
+        let dst_val = *self.byte(dst);
+        let result = dst_val & !src;
+        *self.byte_mut(dst) = result;
+        self.psw[Z] = result.is_zero();
+        self.psw[N] = result.is_negative();
+        self.psw[V] = false;
+        // C is unaffected
+    }
+
+    fn bisb(&mut self, src: Operand, dst: Operand) {
+        // BISB: Bit Set Byte - dst = dst | src
+        let src = *self.byte(src);
+        let dst_val = *self.byte(dst);
+        let result = dst_val | src;
+        *self.byte_mut(dst) = result;
+        self.psw[Z] = result.is_zero();
+        self.psw[N] = result.is_negative();
+        self.psw[V] = false;
+        // C is unaffected
     }
 }
 

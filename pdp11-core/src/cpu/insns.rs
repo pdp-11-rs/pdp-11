@@ -33,15 +33,32 @@ pub enum Instruction {
     Ble(Offset), // Branch if Less or Equal (Z or (N xor V) = 1)
     Tstb(Operand),
     // Single operand instructions
-    Com(Operand),           // Complement (one's complement)
-    Inc(Operand),           // Increment
-    Dec(Operand),           // Decrement
-    Neg(Operand),           // Negate (two's complement)
-    Adc(Operand),           // Add Carry
-    Sbc(Operand),           // Subtract Carry
-    Ror(Operand),           // Rotate Right
-    Rol(Operand),           // Rotate Left
-    Asr(Operand),           // Arithmetic Shift Right
+    Com(Operand), // Complement (one's complement)
+    Inc(Operand), // Increment
+    Dec(Operand), // Decrement
+    Neg(Operand), // Negate (two's complement)
+    Adc(Operand), // Add Carry
+    Sbc(Operand), // Subtract Carry
+    Ror(Operand), // Rotate Right
+    Rol(Operand), // Rotate Left
+    Asr(Operand), // Arithmetic Shift Right
+    // Byte single operand instructions
+    Clrb(Operand), // Clear Byte
+    Comb(Operand), // Complement Byte
+    Incb(Operand), // Increment Byte
+    Decb(Operand), // Decrement Byte
+    Negb(Operand), // Negate Byte
+    Adcb(Operand), // Add Carry Byte
+    Sbcb(Operand), // Subtract Carry Byte
+    Rorb(Operand), // Rotate Right Byte
+    Rolb(Operand), // Rotate Left Byte
+    Asrb(Operand), // Arithmetic Shift Right Byte
+    // Double operand byte instructions
+    Movb(Operand, Operand), // Move Byte
+    Cmpb(Operand, Operand), // Compare Byte
+    Bitb(Operand, Operand), // Bit Test Byte
+    Bicb(Operand, Operand), // Bit Clear Byte
+    Bisb(Operand, Operand), // Bit Set Byte
     Jsr(Register, Operand), // Jump to Subroutine
     Rts(Register),          // Return from Subroutine
     // PSW flag manipulation instructions
@@ -245,6 +262,87 @@ impl Instruction {
         Self::Rts(register)
     }
 
+    // Byte instruction decoders
+    fn clrb(opcode: u16) -> Self {
+        let dst = Operand::from_0_5(opcode);
+        Self::Clrb(dst)
+    }
+
+    fn comb(opcode: u16) -> Self {
+        let dst = Operand::from_0_5(opcode);
+        Self::Comb(dst)
+    }
+
+    fn incb(opcode: u16) -> Self {
+        let dst = Operand::from_0_5(opcode);
+        Self::Incb(dst)
+    }
+
+    fn decb(opcode: u16) -> Self {
+        let dst = Operand::from_0_5(opcode);
+        Self::Decb(dst)
+    }
+
+    fn negb(opcode: u16) -> Self {
+        let dst = Operand::from_0_5(opcode);
+        Self::Negb(dst)
+    }
+
+    fn adcb(opcode: u16) -> Self {
+        let dst = Operand::from_0_5(opcode);
+        Self::Adcb(dst)
+    }
+
+    fn sbcb(opcode: u16) -> Self {
+        let dst = Operand::from_0_5(opcode);
+        Self::Sbcb(dst)
+    }
+
+    fn rorb(opcode: u16) -> Self {
+        let dst = Operand::from_0_5(opcode);
+        Self::Rorb(dst)
+    }
+
+    fn rolb(opcode: u16) -> Self {
+        let dst = Operand::from_0_5(opcode);
+        Self::Rolb(dst)
+    }
+
+    fn asrb(opcode: u16) -> Self {
+        let dst = Operand::from_0_5(opcode);
+        Self::Asrb(dst)
+    }
+
+    fn movb(opcode: u16) -> Self {
+        let src = Operand::from_6_11(opcode);
+        let dst = Operand::from_0_5(opcode);
+        Self::Movb(src, dst)
+    }
+
+    fn cmpb(opcode: u16) -> Self {
+        let src = Operand::from_6_11(opcode);
+        let dst = Operand::from_0_5(opcode);
+        Self::Cmpb(src, dst)
+    }
+
+    fn bitb(opcode: u16) -> Self {
+        let src = Operand::from_6_11(opcode);
+        let dst = Operand::from_0_5(opcode);
+        Self::Bitb(src, dst)
+    }
+
+    fn bicb(opcode: u16) -> Self {
+        let src = Operand::from_6_11(opcode);
+        let dst = Operand::from_0_5(opcode);
+        Self::Bicb(src, dst)
+    }
+
+    fn bisb(opcode: u16) -> Self {
+        let src = Operand::from_6_11(opcode);
+        let dst = Operand::from_0_5(opcode);
+        Self::Bisb(src, dst)
+    }
+
     fn disassemble(&self) -> String {
         use Instruction::*;
         match self {
@@ -286,6 +384,21 @@ impl Instruction {
             Ror(dst) => format!("ROR\t{dst}"),
             Rol(dst) => format!("ROL\t{dst}"),
             Asr(dst) => format!("ASR\t{dst}"),
+            Clrb(dst) => format!("CLRB\t{dst}"),
+            Comb(dst) => format!("COMB\t{dst}"),
+            Incb(dst) => format!("INCB\t{dst}"),
+            Decb(dst) => format!("DECB\t{dst}"),
+            Negb(dst) => format!("NEGB\t{dst}"),
+            Adcb(dst) => format!("ADCB\t{dst}"),
+            Sbcb(dst) => format!("SBCB\t{dst}"),
+            Rorb(dst) => format!("RORB\t{dst}"),
+            Rolb(dst) => format!("ROLB\t{dst}"),
+            Asrb(dst) => format!("ASRB\t{dst}"),
+            Movb(src, dst) => format!("MOVB\t{src}, {dst}"),
+            Cmpb(src, dst) => format!("CMPB\t{src}, {dst}"),
+            Bitb(src, dst) => format!("BITB\t{src}, {dst}"),
+            Bicb(src, dst) => format!("BICB\t{src}, {dst}"),
+            Bisb(src, dst) => format!("BISB\t{src}, {dst}"),
             Jsr(register, dst) => format!("JSR\t{register}, {dst}"),
             Rts(register) => format!("RTS\t{register}"),
             Nop => "NOP".into(),
@@ -347,6 +460,23 @@ impl From<Word> for Instruction {
             opcode @ 0o006000..=0o006077 => Self::ror(opcode),
             opcode @ 0o006100..=0o006177 => Self::rol(opcode),
             opcode @ 0o006200..=0o006277 => Self::asr(opcode),
+            // Byte single operand instructions
+            opcode @ 0o105000..=0o105077 => Self::clrb(opcode),
+            opcode @ 0o105100..=0o105177 => Self::comb(opcode),
+            opcode @ 0o105200..=0o105277 => Self::incb(opcode),
+            opcode @ 0o105300..=0o105377 => Self::decb(opcode),
+            opcode @ 0o105400..=0o105477 => Self::negb(opcode),
+            opcode @ 0o105500..=0o105577 => Self::adcb(opcode),
+            opcode @ 0o105600..=0o105677 => Self::sbcb(opcode),
+            opcode @ 0o106000..=0o106077 => Self::rorb(opcode),
+            opcode @ 0o106100..=0o106177 => Self::rolb(opcode),
+            opcode @ 0o106200..=0o106277 => Self::asrb(opcode),
+            // Byte double operand instructions
+            opcode @ 0o110000..=0o117777 => Self::movb(opcode),
+            opcode @ 0o120000..=0o127777 => Self::cmpb(opcode),
+            opcode @ 0o130000..=0o137777 => Self::bitb(opcode),
+            opcode @ 0o140000..=0o147777 => Self::bicb(opcode),
+            opcode @ 0o150000..=0o157777 => Self::bisb(opcode),
             opcode @ 0o004000..=0o004777 => Self::jsr(opcode),
             opcode @ 0o000200..=0o000207 => Self::rts(opcode),
             0o000240 => Nop,
