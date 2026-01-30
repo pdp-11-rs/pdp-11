@@ -512,3 +512,79 @@ fn branch_decode_opcode() {
     assert!(matches!(Instruction::from(beq_opcode), Instruction::Beq(_)));
     assert!(matches!(Instruction::from(bpl_opcode), Instruction::Bpl(_)));
 }
+
+// Console I/O tests
+
+#[test]
+fn console_output() {
+    let mut cpu = create_test_cpu();
+
+    // Write character 'A' (0o101) to XBUF
+    let xbuf_addr = 0o177566;
+    cpu.registers[R0] = xbuf_addr.into();
+    cpu.registers[R1] = 0o101.into(); // 'A'
+
+    // MOV R1, (R0) - write to XBUF
+    let src = Operand {
+        mode: RegisterAddressingMode::Register,
+        register: R1,
+    };
+    let dst = Operand {
+        mode: RegisterAddressingMode::RegisterDeferred,
+        register: R0,
+    };
+
+    cpu.mov(src, dst);
+
+    // Verify XCSR shows ready
+    let xcsr_addr = Address::<Word>::from_u16(0o177564);
+    let xcsr = cpu.read_console(xcsr_addr);
+    assert_eq!(xcsr.as_u16() & 0o200, 0o200); // XMIT_READY bit set
+}
+
+#[test]
+fn console_input() {
+    let mut cpu = create_test_cpu();
+
+    // Simulate input character 'B' (0o102)
+    cpu.console.input_char(b'B');
+
+    // Check RCSR shows data available
+    let rcsr_addr = Address::<Word>::from_u16(0o177560);
+    let rcsr = cpu.read_console(rcsr_addr);
+    assert_eq!(rcsr.as_u16() & 0o200, 0o200); // READER_DONE bit set
+
+    // Read RBUF
+    let rbuf_addr = Address::<Word>::from_u16(0o177562);
+    let rbuf = cpu.read_console(rbuf_addr);
+    assert_eq!(rbuf.as_u16() & 0o377, 0o102); // Character 'B'
+
+    // After reading, RCSR DONE bit should be clear
+    let rcsr = cpu.read_console(rcsr_addr);
+    assert_eq!(rcsr.as_u16() & 0o200, 0); // READER_DONE bit clear
+}
+
+#[test]
+fn console_mov_read() {
+    let mut cpu = create_test_cpu();
+
+    // Simulate input character 'C' (0o103)
+    cpu.console.input_char(b'C');
+
+    // MOV from RBUF to R2
+    cpu.registers[R0] = 0o177562.into(); // RBUF address
+
+    let src = Operand {
+        mode: RegisterAddressingMode::RegisterDeferred,
+        register: R0,
+    };
+    let dst = Operand {
+        mode: RegisterAddressingMode::Register,
+        register: R2,
+    };
+
+    cpu.mov(src, dst);
+
+    // Check that R2 contains the character
+    assert_eq!(cpu.registers[R2].as_u16() & 0o377, 0o103);
+}

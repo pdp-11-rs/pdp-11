@@ -10,25 +10,55 @@ impl Cpu {
             Register => &self.registers[register],
             RegisterDeferred => {
                 let address = self.registers[register].address::<Word>();
-                &self.ram[address]
+                // Check for console MMIO
+                if self.is_console_io(address) {
+                    self.io_temp = self.read_console(address);
+                    &self.io_temp
+                } else {
+                    &self.ram[address]
+                }
             }
             Autoincrement => {
                 let address = self.registers.get_inc::<Word>(register).address::<Word>();
-                &self.ram[address]
+                // Check for console MMIO
+                if self.is_console_io(address) {
+                    self.io_temp = self.read_console(address);
+                    &self.io_temp
+                } else {
+                    &self.ram[address]
+                }
             }
             AutoincrementDeferred => {
                 let address = self.registers.get_inc::<Word>(register).address::<Word>();
                 let address = self.ram[address].address::<Word>();
-                &self.ram[address]
+                // Check for console MMIO
+                if self.is_console_io(address) {
+                    self.io_temp = self.read_console(address);
+                    &self.io_temp
+                } else {
+                    &self.ram[address]
+                }
             }
             Autodecrement => {
                 let address = self.registers.dec_get::<Word>(register).address::<Word>();
-                &self.ram[address]
+                // Check for console MMIO
+                if self.is_console_io(address) {
+                    self.io_temp = self.read_console(address);
+                    &self.io_temp
+                } else {
+                    &self.ram[address]
+                }
             }
             AutodecrementDeferred => {
                 let address = self.registers.dec_get::<Word>(register).address::<Word>();
                 let address = self.ram[address].address::<Word>();
-                &self.ram[address]
+                // Check for console MMIO
+                if self.is_console_io(address) {
+                    self.io_temp = self.read_console(address);
+                    &self.io_temp
+                } else {
+                    &self.ram[address]
+                }
             }
             Index => {
                 // Get index offset from next word in instruction stream
@@ -36,7 +66,13 @@ impl Cpu {
                 // Add offset to register value to get final address
                 let base = self.registers[register];
                 let address = (base + offset).address::<Word>();
-                &self.ram[address]
+                // Check for console MMIO
+                if self.is_console_io(address) {
+                    self.io_temp = self.read_console(address);
+                    &self.io_temp
+                } else {
+                    &self.ram[address]
+                }
             }
             IndexDeferred => {
                 // Get index offset from next word in instruction stream
@@ -46,7 +82,13 @@ impl Cpu {
                 let address = (base + offset).address::<Word>();
                 // Dereference to get final address
                 let address = self.ram[address].address::<Word>();
-                &self.ram[address]
+                // Check for console MMIO
+                if self.is_console_io(address) {
+                    self.io_temp = self.read_console(address);
+                    &self.io_temp
+                } else {
+                    &self.ram[address]
+                }
             }
         }
     }
@@ -354,4 +396,65 @@ impl Cpu {
     //     let address = self.ram.load::<Word>(address).address();
     //     self.ram.store(address, data);
     // }
+
+    /// Check if an address is in console I/O space and handle it
+    pub(super) fn is_console_io(&self, address: Address<Word>) -> bool {
+        matches!(
+            address,
+            console::RCSR | console::RBUF | console::XCSR | console::XBUF
+        )
+    }
+
+    /// Read from console register (for MMIO)
+    pub(super) fn read_console(&mut self, address: Address<Word>) -> Word {
+        self.console.read_register(address)
+    }
+
+    /// Write to console register (for MMIO)
+    pub(super) fn write_console(&mut self, address: Address<Word>, value: Word) {
+        self.console.write_register(address, value);
+    }
+
+    /// Get the memory address for an operand (if applicable)
+    /// Returns None for register-direct mode
+    pub(super) fn get_operand_address(&mut self, operand: Operand) -> Option<Address<Word>> {
+        use RegisterAddressingMode::*;
+
+        let Operand { mode, register } = operand;
+
+        match mode {
+            Register => None,
+            RegisterDeferred => Some(self.registers[register].address::<Word>()),
+            Autoincrement => {
+                let address = self.registers[register].address::<Word>();
+                self.registers[register] += 2u16;
+                Some(address)
+            }
+            AutoincrementDeferred => {
+                let address = self.registers[register].address::<Word>();
+                self.registers[register] += 2u16;
+                Some(self.ram[address].address::<Word>())
+            }
+            Autodecrement => {
+                self.registers[register] -= 2u16;
+                Some(self.registers[register].address::<Word>())
+            }
+            AutodecrementDeferred => {
+                self.registers[register] -= 2u16;
+                let address = self.registers[register].address::<Word>();
+                Some(self.ram[address].address::<Word>())
+            }
+            Index => {
+                let offset = *self.word(Operand::pc());
+                let base = self.registers[register];
+                Some((base + offset).address::<Word>())
+            }
+            IndexDeferred => {
+                let offset = *self.word(Operand::pc());
+                let base = self.registers[register];
+                let address = (base + offset).address::<Word>();
+                Some(self.ram[address].address::<Word>())
+            }
+        }
+    }
 }

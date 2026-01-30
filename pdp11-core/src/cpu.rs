@@ -10,6 +10,7 @@ pub use register::Registers;
 pub use register::{Register, Register::*};
 
 mod bootrom;
+mod console;
 mod impls;
 mod insns;
 mod psw;
@@ -24,6 +25,7 @@ pub struct Cpu {
     psw: ProcessorStatusWord,
     ram: Ram,
     rk: rk::Rk,
+    console: console::Console,
     /// Temporary storage for memory-mapped I/O register reads
     /// This allows returning references to RK11 registers
     io_temp: Word,
@@ -67,10 +69,12 @@ impl From<u16> for RegisterAddressingMode {
 impl Cpu {
     pub fn new(rk: impl AsRef<Path>) -> io::Result<Self> {
         let mut rk = rk::Rk::with_image(rk)?;
+        let console = console::Console::new();
         let mut ram = Ram::default();
 
-        // Initialize RK11 registers in RAM
+        // Initialize peripheral registers in RAM
         rk.init_registers(&mut ram);
+        console.init_registers(&mut ram);
 
         let core = Self {
             halt: false,
@@ -78,6 +82,7 @@ impl Cpu {
             psw: ProcessorStatusWord::default(),
             ram,
             rk,
+            console,
             io_temp: Word::zero(),
         };
 
@@ -89,10 +94,12 @@ impl Cpu {
     #[cfg(test)]
     pub fn for_testing() -> Self {
         let mut rk = rk::Rk::empty();
+        let console = console::Console::new();
         let mut ram = Ram::default();
 
-        // Initialize RK11 registers in RAM
+        // Initialize peripheral registers in RAM
         rk.init_registers(&mut ram);
+        console.init_registers(&mut ram);
 
         Self {
             halt: false,
@@ -100,6 +107,7 @@ impl Cpu {
             psw: ProcessorStatusWord::default(),
             ram,
             rk,
+            console,
             io_temp: Word::zero(),
         }
     }
@@ -225,6 +233,21 @@ impl Cpu {
 
     fn mov(&mut self, src: Operand, dst: Operand) {
         let word = *self.word(src);
+
+        // Check if destination is console I/O
+        let dst_address = self.get_operand_address(dst);
+        #[allow(clippy::collapsible_if)]
+        if let Some(addr) = dst_address {
+            if self.is_console_io(addr) {
+                self.write_console(addr, word);
+                self.psw[N] = word.is_negative();
+                self.psw[Z] = word.is_zero();
+                self.psw[V] = false;
+                return;
+            }
+        }
+
+        // Normal RAM write
         *self.word_mut(dst) = word;
         self.psw[N] = word.is_negative();
         self.psw[Z] = word.is_zero();
