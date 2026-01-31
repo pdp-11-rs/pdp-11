@@ -1033,13 +1033,13 @@ impl Cpu {
     /// Should be called periodically (e.g., every ~16.67ms for 60Hz)
     /// Returns true if an interrupt was generated
     #[allow(dead_code)]
-    pub(crate) fn tick_kw11(&mut self) -> bool {
+    fn tick_kw11(&mut self) -> bool {
         self.kw11.tick()
     }
 
     /// Clear KW11-L interrupt (called after servicing)
     #[cfg(test)]
-    pub(crate) fn clear_kw11_interrupt(&mut self) {
+    fn clear_kw11_interrupt(&mut self) {
         self.kw11.clear_interrupt();
     }
 }
