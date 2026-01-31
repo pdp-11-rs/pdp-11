@@ -369,7 +369,12 @@ impl MemoryAcceess for Word {
     }
 
     fn as_le_bytes(&self) -> &[u8] {
-        todo!("<Word as MemoryAccess>::as_le_bytes()");
+        // Convert [Byte; 2] to &[u8; 2] then to &[u8]
+        // SAFETY: Byte is repr(transparent) over u8, so this is safe
+        unsafe {
+            let bytes_ptr = &self.le as *const [Byte; 2] as *const [u8; 2];
+            &*bytes_ptr
+        }
     }
 
     fn is_zero(&self) -> bool {
@@ -697,5 +702,24 @@ mod tests {
         let mut w = Word::from(0b1111u16);
         w ^= Word::from(0b1010u16);
         assert_eq!(w.as_u16(), 0b0101);
+    }
+
+    #[test]
+    fn test_as_le_bytes() {
+        // Test that as_le_bytes returns bytes in little-endian order
+        let w = Word::from(0o012345u16);
+        let bytes = w.as_le_bytes();
+        assert_eq!(bytes.len(), 2);
+        // Little-endian: low byte first
+        assert_eq!(bytes[0], (0o012345u16 & 0xFF) as u8);
+        assert_eq!(bytes[1], ((0o012345u16 >> 8) & 0xFF) as u8);
+        
+        // Test zero
+        let zero = Word::ZERO;
+        assert_eq!(zero.as_le_bytes(), &[0, 0]);
+        
+        // Test max value
+        let max = Word::from(0o177777u16);
+        assert_eq!(max.as_le_bytes(), &[0xFF, 0xFF]);
     }
 }
