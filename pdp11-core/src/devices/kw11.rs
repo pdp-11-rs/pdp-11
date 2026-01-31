@@ -1,4 +1,4 @@
-use super::*;
+use crate::devices::*;
 
 /// KW11-L Line Time Clock
 ///
@@ -82,7 +82,7 @@ impl Default for Kw11 {
     }
 }
 
-impl mmio::MmioDevice for Kw11 {
+impl MmioDevice for Kw11 {
     fn read_word(&mut self, address: Address<Word>) -> Word {
         if address == LKS {
             self.lks
@@ -133,7 +133,7 @@ impl mmio::MmioDevice for Kw11 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use mmio::MmioDevice;
+    use MmioDevice;
 
     #[test]
     fn test_kw11_new() {

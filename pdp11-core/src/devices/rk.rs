@@ -1,4 +1,4 @@
-use super::*;
+use crate::devices::*;
 
 /// RK11 Disk Controller for RK05 disk drives
 ///
@@ -150,7 +150,7 @@ impl Rk {
     }
 }
 
-impl mmio::MmioDevice for Rk {
+impl MmioDevice for Rk {
     fn read_word(&mut self, address: Address<Word>) -> Word {
         match address {
             RKDS => self.rkds,

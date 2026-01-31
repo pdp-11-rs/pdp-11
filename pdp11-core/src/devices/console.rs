@@ -1,4 +1,4 @@
-use super::*;
+use crate::devices::*;
 use std::io::{self, Write};
 
 /// DL11/KL11 Console Serial Interface
@@ -123,7 +123,7 @@ impl fmt::Debug for Console {
     }
 }
 
-impl mmio::MmioDevice for Console {
+impl MmioDevice for Console {
     fn read_word(&mut self, address: Address<Word>) -> Word {
         self.read_register(address)
     }
