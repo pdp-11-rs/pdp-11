@@ -137,6 +137,17 @@ impl Cpu {
         }
     }
 
+    pub fn is_halted(&self) -> bool {
+        self.halt
+    }
+
+    pub fn step(&mut self) {
+        let opcode = self.next_opcode();
+        self.execute(opcode);
+        // Check if any RK command was triggered
+        self.rk.execute_pending_command(&mut self.ram);
+    }
+
     fn next_opcode(&mut self) -> Word {
         *self.word(Operand::pc())
     }
@@ -228,7 +239,7 @@ impl Cpu {
         self.halt = true;
     }
 
-    fn reset(&mut self) {
+    pub fn reset(&mut self) {
         self.halt = false;
         self.registers.reset();
         self.psw.reset();

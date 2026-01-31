@@ -11,7 +11,22 @@ fn main() -> io::Result<()> {
         )
         .init();
 
-    let core = cpu::Cpu::new("rk0.img")?;
-    core.poweron();
+    let mut core = cpu::Cpu::new("rk0.img")?;
+    core.reset();
+    
+    tracing::info!("Starting emulator...");
+    
+    // Run for a limited number of instructions for testing
+    let max_instructions = 1000;
+    for i in 0..max_instructions {
+        if core.is_halted() {
+            tracing::info!("CPU halted after {} instructions", i);
+            break;
+        }
+        core.step();
+    }
+    
+    tracing::info!("Emulator stopped");
+    
     Ok(())
 }
