@@ -41,16 +41,16 @@ where
 impl Word {
     /// Constant for zero
     pub const ZERO: Self = Self::zero();
-    
+
     /// Constant for one
     pub const ONE: Self = Self::from_u16(1);
-    
+
     /// Maximum positive value in PDP-11 two's complement (0o077777 = 32767)
     pub const MAX_POSITIVE: Self = Self::from_u16(0o077777);
-    
+
     /// Minimum negative value in PDP-11 two's complement (0o100000 = -32768)
     pub const MIN_NEGATIVE: Self = Self::from_u16(0o100000);
-    
+
     /// Maximum unsigned value (0o177777 = 65535)
     pub const MAX_UNSIGNED: Self = Self::from_u16(0o177777);
 

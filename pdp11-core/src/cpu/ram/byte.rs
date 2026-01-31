@@ -8,16 +8,16 @@ pub struct Byte {
 impl Byte {
     /// Constant for zero
     pub const ZERO: Self = Self::zero();
-    
+
     /// Constant for one
     pub const ONE: Self = Self::from_u8(1);
-    
+
     /// Maximum positive value in PDP-11 two's complement (0o177 = 127)
     pub const MAX_POSITIVE: Self = Self::from_u8(0o177);
-    
+
     /// Minimum negative value in PDP-11 two's complement (0o200 = -128)
     pub const MIN_NEGATIVE: Self = Self::from_u8(0o200);
-    
+
     /// Maximum unsigned value (0o377 = 255)
     pub const MAX_UNSIGNED: Self = Self::from_u8(0o377);
 
