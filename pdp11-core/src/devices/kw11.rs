@@ -70,7 +70,7 @@ impl Kw11 {
     }
 
     /// Get tick count (for testing/debugging)
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub fn tick_count(&self) -> u64 {
         self.tick_count
     }

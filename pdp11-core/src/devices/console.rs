@@ -199,16 +199,6 @@ impl Console {
     pub fn tx_interrupt_pending(&self) -> bool {
         self.tx_interrupt_pending
     }
-
-    /// Clear receiver interrupt (called after interrupt is serviced)
-    pub fn clear_rx_interrupt(&mut self) {
-        self.rx_interrupt_pending = false;
-    }
-
-    /// Clear transmitter interrupt (called after interrupt is serviced)
-    pub fn clear_tx_interrupt(&mut self) {
-        self.tx_interrupt_pending = false;
-    }
 }
 
 impl fmt::Debug for Console {

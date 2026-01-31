@@ -970,7 +970,8 @@ impl Cpu {
 
     /// Trigger an interrupt with the given vector address and priority level
     /// Vector address points to PC/PSW pair in low memory
-    pub fn interrupt(&mut self, vector: u16, priority: u8) {
+    #[cfg(test)]
+    pub(crate) fn interrupt(&mut self, vector: u16, priority: u8) {
         // Only process interrupt if its priority is higher than current IPL
         if priority <= self.psw.priority() {
             return;
@@ -997,7 +998,8 @@ impl Cpu {
 
     /// Check for pending peripheral interrupts
     /// Returns (vector, priority) if interrupt should be serviced
-    pub fn check_interrupts(&mut self) -> Option<(u16, u8)> {
+    #[cfg(test)]
+    pub(crate) fn check_interrupts(&mut self) -> Option<(u16, u8)> {
         // Check interrupts in priority order (highest first)
 
         // Priority 6: KW11-L line clock (vector 0o100)
@@ -1030,12 +1032,14 @@ impl Cpu {
     /// Tick the KW11-L line clock
     /// Should be called periodically (e.g., every ~16.67ms for 60Hz)
     /// Returns true if an interrupt was generated
-    pub fn tick_kw11(&mut self) -> bool {
+    #[allow(dead_code)]
+    pub(crate) fn tick_kw11(&mut self) -> bool {
         self.kw11.tick()
     }
 
     /// Clear KW11-L interrupt (called after servicing)
-    pub fn clear_kw11_interrupt(&mut self) {
+    #[cfg(test)]
+    pub(crate) fn clear_kw11_interrupt(&mut self) {
         self.kw11.clear_interrupt();
     }
 }
@@ -1047,19 +1051,19 @@ pub struct Operand {
 }
 
 impl Operand {
-    pub fn from_0_5(opcode: u16) -> Self {
+    pub(super) fn from_0_5(opcode: u16) -> Self {
         let mode = RegisterAddressingMode::from((opcode & 0o000070) >> 3);
         let register = Register::from(opcode & 0o000007);
         Self { mode, register }
     }
 
-    pub fn from_6_11(opcode: u16) -> Self {
+    pub(super) fn from_6_11(opcode: u16) -> Self {
         let mode = RegisterAddressingMode::from((opcode & 0o007000) >> 9);
         let register = Register::from((opcode & 0o000700) >> 6);
         Self { mode, register }
     }
 
-    pub fn pc() -> Self {
+    pub(super) fn pc() -> Self {
         Self {
             mode: RegisterAddressingMode::Autoincrement,
             register: PC,
