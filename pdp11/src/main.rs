@@ -17,21 +17,26 @@ fn main() -> io::Result<()> {
 
     tracing::info!("Starting emulator...");
 
-    // Run for a limited number of instructions for testing
-    let max_instructions = 1000;
-    for i in 0..max_instructions {
+    // Run until halted, with progress reporting
+    let mut instruction_count = 0u64;
+    let report_interval = 100_000;
+    loop {
         if core.is_halted() {
-            tracing::info!("CPU halted after {} instructions", i);
+            tracing::info!("CPU halted after {} instructions", instruction_count);
             break;
         }
         core.step();
-    }
+        instruction_count += 1;
 
-    if !core.is_halted() {
-        tracing::info!(
-            "Reached instruction limit of {} instructions",
-            max_instructions
-        );
+        if instruction_count % report_interval == 0 {
+            tracing::info!("Executed {} instructions...", instruction_count);
+        }
+
+        // Safety limit to prevent infinite loops during development
+        if instruction_count >= 10_000_000 {
+            tracing::warn!("Reached safety limit of {} instructions", instruction_count);
+            break;
+        }
     }
 
     tracing::info!("Emulator stopped");
