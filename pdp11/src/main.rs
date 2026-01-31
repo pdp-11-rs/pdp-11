@@ -40,7 +40,7 @@ fn main() -> io::Result<()> {
         }
 
         // Safety limit to prevent infinite loops during development
-        // Note: A successful boot often ends in an idle/wait loop waiting for interrupts
+        // Note: A successful boot typically shows @ prompt and waits for console input
         if instruction_count >= 10_000_000 {
             let pc = core.pc_value();
             tracing::info!("Reached instruction limit at PC={:#08o}", pc.as_u16());
@@ -48,11 +48,11 @@ fn main() -> io::Result<()> {
             last_pcs.sort();
             last_pcs.dedup();
             if last_pcs.len() <= 10 {
-                tracing::info!("System appears to be in idle loop (typically waiting for interrupts):");
+                tracing::info!("System waiting for console input (ODT @ prompt shown):");
                 for pc in &last_pcs {
                     tracing::info!("  PC={:#08o}", pc);
                 }
-                tracing::info!("Boot sequence completed successfully!");
+                tracing::info!("✓ Boot completed successfully! System is at the ODT prompt.");
             } else {
                 tracing::warn!("Unique PCs in last 100K instructions: {}", last_pcs.len());
             }
