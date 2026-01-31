@@ -11,6 +11,7 @@ version = "0.0.1"
 pdp11-core = { path = "pdp11-core" }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+libc = "0.2"
 
 
 [workspace.lints.clippy]

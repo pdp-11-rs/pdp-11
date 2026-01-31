@@ -1,5 +1,8 @@
 use crate::devices::*;
-use std::io::{self, Write};
+use std::io::{self, Read, Write};
+
+#[cfg(unix)]
+use std::os::fd::AsRawFd;
 
 /// DL11/KL11 Console Serial Interface
 ///
@@ -128,7 +131,7 @@ impl Console {
     }
 
     /// Check for input character (non-blocking)
-    fn check_input(&mut self) {
+    pub fn check_input(&mut self) {
         // Try to read one byte from stdin without blocking
         #[cfg(unix)]
         {
@@ -143,11 +146,43 @@ impl Console {
     }
 
     #[cfg(unix)]
-    #[expect(clippy::unused_self)]
-    fn check_input_unix(&self) {
-        // TODO: Implement non-blocking stdin without thread spawning
-        // For now, console input is disabled to avoid thread spawn issues
-        // when many processes are running
+    fn check_input_unix(&mut self) {
+        use std::io::ErrorKind;
+
+        // Try to read one byte from stdin without blocking
+        let stdin = io::stdin();
+        let mut handle = stdin.lock();
+
+        // Set stdin to non-blocking mode temporarily
+        let fd = handle.as_raw_fd();
+        let old_flags = unsafe { libc::fcntl(fd, libc::F_GETFL) };
+        if old_flags >= 0 {
+            unsafe { libc::fcntl(fd, libc::F_SETFL, old_flags | libc::O_NONBLOCK) };
+        }
+
+        let mut buf = [0u8; 1];
+        match handle.read(&mut buf) {
+            Ok(1) => {
+                // Got a character - restore flags first
+                if old_flags >= 0 {
+                    unsafe { libc::fcntl(fd, libc::F_SETFL, old_flags) };
+                }
+                // Input the character to the console
+                self.input_char(buf[0]);
+                tracing::trace!("Console input: {:?}", buf[0] as char);
+            }
+            Err(ref e) if e.kind() == ErrorKind::WouldBlock => {
+                // No input available - this is normal
+            }
+            _ => {
+                // Other error or EOF - ignore
+            }
+        }
+
+        // Restore original flags
+        if old_flags >= 0 {
+            unsafe { libc::fcntl(fd, libc::F_SETFL, old_flags) };
+        }
     }
 
     /// Output a character to stdout

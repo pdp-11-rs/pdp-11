@@ -30,6 +30,7 @@ fn main() -> io::Result<()> {
     // Run until halted, with progress reporting
     let mut instruction_count = 0u64;
     let report_interval = 100_000;
+    let check_input_interval = 1000; // Check for input every 1000 instructions
     let mut last_pcs: Vec<u16> = Vec::with_capacity(1000);
     let mut prompt_detected = false;
 
@@ -40,6 +41,11 @@ fn main() -> io::Result<()> {
         }
         core.step();
         instruction_count += 1;
+
+        // Check for console input periodically
+        if instruction_count.is_multiple_of(check_input_interval) {
+            core.check_console_input();
+        }
 
         // Track recent PCs to detect tight loops (console input wait)
         let pc = core.pc_value().as_u16();

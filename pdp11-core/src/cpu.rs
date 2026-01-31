@@ -142,7 +142,7 @@ impl Cpu {
     }
 
     /// Inject a character into the console input buffer (for testing)
-    #[cfg(test)]
+    /// Input a character to the console
     pub fn console_input(&mut self, ch: u8) {
         self.console.input_char(ch);
         // Sync to RAM - but DON'T read RBUF as that clears the DONE bit!
@@ -155,6 +155,20 @@ impl Cpu {
         // So we'll write the character value directly
         self.ram
             .write_direct(devices::console::RBUF, Word::from(u16::from(ch)));
+    }
+
+    /// Check for console input and process if available
+    pub fn check_console_input(&mut self) {
+        self.console.check_input();
+        // Sync console state to RAM after checking for input
+        self.ram.write_direct(
+            devices::console::RCSR,
+            self.console.read_register(devices::console::RCSR),
+        );
+        self.ram.write_direct(
+            devices::console::RBUF,
+            self.console.read_register(devices::console::RBUF),
+        );
     }
 
     pub fn step(&mut self) {
