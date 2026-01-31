@@ -2258,3 +2258,93 @@ fn test_boot_with_odt_go_command() {
     // Don't fail the test, just report results
     assert!(changed, "'G' command should cause execution to continue");
 }
+
+#[test]
+fn test_console_rx_interrupt() {
+    let mut cpu = create_test_cpu();
+
+    // Enable receiver interrupts by writing to RCSR
+    let rcsr_val = Word::from_u16(0o000101); // READER_ENABLE | READER_IE
+    cpu.ram.write_direct(devices::console::RCSR, rcsr_val);
+    cpu.console.write_register(devices::console::RCSR, rcsr_val);
+
+    // Verify no interrupt pending initially
+    assert!(!cpu.console.rx_interrupt_pending());
+
+    // Input a character
+    cpu.console_input('A' as u8);
+
+    // Verify interrupt is now pending
+    assert!(cpu.console.rx_interrupt_pending());
+
+    // Check that check_interrupts returns console RX vector
+    let interrupt = cpu.check_interrupts();
+    assert_eq!(interrupt, Some((devices::console::CONSOLE_RX_VECTOR, devices::console::CONSOLE_PRIORITY)));
+
+    // Read the character via console.read_register (should clear interrupt)
+    let ch = cpu.console.read_register(devices::console::RBUF);
+    assert_eq!(ch.as_u16() & 0o377, 'A' as u16);
+
+    // Verify interrupt cleared
+    assert!(!cpu.console.rx_interrupt_pending());
+}
+
+#[test]
+fn test_console_tx_interrupt() {
+    let mut cpu = create_test_cpu();
+
+    // Verify no TX interrupt initially (IE not set)
+    assert!(!cpu.console.tx_interrupt_pending());
+
+    // Enable transmitter interrupts
+    let xcsr_val = Word::from_u16(0o000100); // XMIT_IE
+    cpu.console.write_register(devices::console::XCSR, xcsr_val);
+
+    // Now TX interrupt should be pending (transmitter is always ready)
+    assert!(cpu.console.tx_interrupt_pending());
+
+    // Check that check_interrupts returns console TX vector
+    let interrupt = cpu.check_interrupts();
+    assert_eq!(interrupt, Some((devices::console::CONSOLE_TX_VECTOR, devices::console::CONSOLE_PRIORITY)));
+
+    // Write a character
+    cpu.console.write_register(devices::console::XBUF, Word::from('B' as u16));
+
+    // Transmitter should still be ready (and interrupt still pending)
+    assert!(cpu.console.tx_interrupt_pending());
+
+    // Disable interrupts
+    cpu.console.write_register(devices::console::XCSR, Word::zero());
+
+    // Now no interrupt should be pending
+    assert!(!cpu.console.tx_interrupt_pending());
+}
+
+#[test]
+fn test_console_interrupt_priority() {
+    let mut cpu = create_test_cpu();
+
+    // Enable both RX and TX interrupts
+    cpu.console.write_register(devices::console::RCSR, Word::from_u16(0o000101));
+    cpu.console.write_register(devices::console::XCSR, Word::from_u16(0o000100));
+
+    // Input a character to trigger RX interrupt
+    cpu.console_input('X' as u8);
+
+    // Both should be pending
+    assert!(cpu.console.rx_interrupt_pending());
+    assert!(cpu.console.tx_interrupt_pending());
+
+    // RX should be returned first (checked first in code)
+    let interrupt = cpu.check_interrupts();
+    assert_eq!(interrupt, Some((devices::console::CONSOLE_RX_VECTOR, devices::console::CONSOLE_PRIORITY)));
+
+    // Clear RX interrupt by reading
+    cpu.console.read_register(devices::console::RBUF);
+
+    // Now TX should be returned
+    let interrupt = cpu.check_interrupts();
+    assert_eq!(interrupt, Some((devices::console::CONSOLE_TX_VECTOR, devices::console::CONSOLE_PRIORITY)));
+}
+
+

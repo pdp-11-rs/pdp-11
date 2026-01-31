@@ -4,7 +4,21 @@ use std::io::{self, Write};
 /// DL11/KL11 Console Serial Interface
 ///
 /// Provides character I/O via stdin/stdout with memory-mapped registers
-/// Operating in polling mode (no interrupts initially)
+///
+/// **Specifications:**
+/// - Receiver Interrupt Vector: 0o060
+/// - Transmitter Interrupt Vector: 0o064
+/// - Interrupt Priority: 4
+/// - Registers at 0o177560-0o177566
+///
+/// **RCSR (Receiver Control/Status) bits:**
+/// - Bit 7: Reader Done (DONE) - set when character available
+/// - Bit 6: Interrupt Enable (IE) - enables receiver interrupts
+/// - Bit 0: Reader Enable (RE) - enables receiver
+///
+/// **XCSR (Transmitter Control/Status) bits:**
+/// - Bit 7: Transmitter Ready (READY) - ready to send
+/// - Bit 6: Interrupt Enable (IE) - enables transmitter interrupts
 pub struct Console {
     // Receiver status/buffer
     rcsr: Word,
@@ -12,6 +26,9 @@ pub struct Console {
     // Transmitter status/buffer
     xcsr: Word,
     xbuf: Word,
+    // Interrupt state
+    rx_interrupt_pending: bool,
+    tx_interrupt_pending: bool,
 }
 
 // Console register addresses
@@ -21,9 +38,16 @@ pub const XCSR: Address<Word> = Address::from_u16(0o177564);
 pub const XBUF: Address<Word> = Address::from_u16(0o177566);
 
 // Status register bits
-const READER_ENABLE: Word = Word::from_u16(0o000001); // Receiver enable
-const READER_DONE: Word = Word::from_u16(0o000200); // Receiver done (data available)
-const XMIT_READY: Word = Word::from_u16(0o000200); // Transmitter ready
+const READER_ENABLE: Word = Word::from_u16(0o000001); // Receiver enable (bit 0)
+const READER_IE: Word = Word::from_u16(0o000100); // Receiver interrupt enable (bit 6)
+const READER_DONE: Word = Word::from_u16(0o000200); // Receiver done/data available (bit 7)
+const XMIT_IE: Word = Word::from_u16(0o000100); // Transmitter interrupt enable (bit 6)
+const XMIT_READY: Word = Word::from_u16(0o000200); // Transmitter ready (bit 7)
+
+// Interrupt vectors and priority
+pub const CONSOLE_RX_VECTOR: u16 = 0o060;
+pub const CONSOLE_TX_VECTOR: u16 = 0o064;
+pub const CONSOLE_PRIORITY: u8 = 4;
 
 impl Default for Console {
     fn default() -> Self {
@@ -39,6 +63,8 @@ impl Console {
             rbuf: Word::zero(),
             xcsr: XMIT_READY, // Transmitter always ready initially
             xbuf: Word::zero(),
+            rx_interrupt_pending: false,
+            tx_interrupt_pending: false,
         }
     }
 
@@ -59,9 +85,10 @@ impl Console {
                 self.rcsr
             }
             RBUF => {
-                // Reading RBUF clears the DONE bit
+                // Reading RBUF clears the DONE bit and interrupt
                 let data = self.rbuf;
                 self.rcsr &= !READER_DONE;
+                self.rx_interrupt_pending = false;
                 data
             }
             XCSR => self.xcsr,
@@ -74,21 +101,27 @@ impl Console {
     pub fn write_register(&mut self, address: Address<Word>, value: Word) {
         match address {
             RCSR => {
-                // Only certain bits are writable (enable bit)
-                self.rcsr = (self.rcsr & !READER_ENABLE) | (value & READER_ENABLE);
+                // Only enable and IE bits are writable
+                self.rcsr = (self.rcsr & !(READER_ENABLE | READER_IE)) 
+                          | (value & (READER_ENABLE | READER_IE));
+                // Check if we should generate an interrupt
+                self.update_rx_interrupt();
             }
             RBUF => {
                 // RBUF is read-only, ignore writes
             }
             XCSR => {
-                // XCSR bits (typically only interrupt enable is writable)
-                self.xcsr = value;
+                // Only IE bit is writable for XCSR
+                self.xcsr = (self.xcsr & !XMIT_IE) | (value & XMIT_IE);
+                // Check if we should generate an interrupt
+                self.update_tx_interrupt();
             }
             XBUF => {
                 // Write character to output
                 self.output_char(value);
-                // Transmitter remains ready
-                self.xcsr = XMIT_READY;
+                // Transmitter remains ready (always ready for next character)
+                self.xcsr = (self.xcsr & XMIT_IE) | XMIT_READY;
+                self.update_tx_interrupt();
             }
             _ => {}
         }
@@ -122,6 +155,7 @@ impl Console {
             // Got a character
             self.rbuf = Word::from(buf[0] as u16);
             self.rcsr |= READER_DONE;
+            self.update_rx_interrupt();
         }
         // No data available is normal for non-blocking, just return
     }
@@ -139,6 +173,43 @@ impl Console {
     pub fn input_char(&mut self, ch: u8) {
         self.rbuf = Word::from(ch as u16);
         self.rcsr |= READER_DONE;
+        self.update_rx_interrupt();
+    }
+
+    /// Update receiver interrupt state based on DONE and IE bits
+    fn update_rx_interrupt(&mut self) {
+        // Interrupt pending if DONE is set and IE is enabled
+        self.rx_interrupt_pending = 
+            (self.rcsr & READER_DONE) != Word::zero() 
+            && (self.rcsr & READER_IE) != Word::zero();
+    }
+
+    /// Update transmitter interrupt state based on READY and IE bits
+    fn update_tx_interrupt(&mut self) {
+        // Interrupt pending if READY is set and IE is enabled
+        self.tx_interrupt_pending = 
+            (self.xcsr & XMIT_READY) != Word::zero() 
+            && (self.xcsr & XMIT_IE) != Word::zero();
+    }
+
+    /// Check if receiver interrupt is pending
+    pub fn rx_interrupt_pending(&self) -> bool {
+        self.rx_interrupt_pending
+    }
+
+    /// Check if transmitter interrupt is pending
+    pub fn tx_interrupt_pending(&self) -> bool {
+        self.tx_interrupt_pending
+    }
+
+    /// Clear receiver interrupt (called after interrupt is serviced)
+    pub fn clear_rx_interrupt(&mut self) {
+        self.rx_interrupt_pending = false;
+    }
+
+    /// Clear transmitter interrupt (called after interrupt is serviced)
+    pub fn clear_tx_interrupt(&mut self) {
+        self.tx_interrupt_pending = false;
     }
 }
 
