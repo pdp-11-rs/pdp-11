@@ -299,22 +299,7 @@ impl Cpu {
 
     fn mov(&mut self, src: Operand, dst: Operand) {
         let word = *self.word(src);
-
-        // Check if destination is console I/O
-        let dst_address = self.get_operand_address(dst);
-        #[allow(clippy::collapsible_if)]
-        if let Some(addr) = dst_address {
-            if self.is_console_io(addr) {
-                self.write_console(addr, word);
-                self.psw[N] = word.is_negative();
-                self.psw[Z] = word.is_zero();
-                self.psw[V] = false;
-                return;
-            }
-        }
-
-        // Normal RAM write
-        *self.word_mut(dst) = word;
+        self.write_word(dst, word);
         self.psw[N] = word.is_negative();
         self.psw[Z] = word.is_zero();
         self.psw[V] = false;

@@ -285,6 +285,158 @@ impl Cpu {
         }
     }
 
+    /// Write a word to memory with MMIO routing
+    pub(super) fn write_word(&mut self, operand: Operand, value: Word) {
+        use RegisterAddressingMode::*;
+
+        let Operand { mode, register } = operand;
+
+        match mode {
+            Register => {
+                self.registers[register] = value;
+            }
+            RegisterDeferred => {
+                let address = self.registers[register].address::<Word>();
+                if self.mmio.is_io_space_word(address) {
+                    self.write_mmio_word(address, value);
+                } else {
+                    self.ram[address] = value;
+                }
+            }
+            Autoincrement => {
+                let address = self.registers.get_inc::<Word>(register).address::<Word>();
+                if self.mmio.is_io_space_word(address) {
+                    self.write_mmio_word(address, value);
+                } else {
+                    self.ram[address] = value;
+                }
+            }
+            AutoincrementDeferred => {
+                let address = self.registers.get_inc::<Word>(register).address::<Word>();
+                let address = self.ram[address].address::<Word>();
+                if self.mmio.is_io_space_word(address) {
+                    self.write_mmio_word(address, value);
+                } else {
+                    self.ram[address] = value;
+                }
+            }
+            Autodecrement => {
+                let address = self.registers.dec_get::<Word>(register).address::<Word>();
+                if self.mmio.is_io_space_word(address) {
+                    self.write_mmio_word(address, value);
+                } else {
+                    self.ram[address] = value;
+                }
+            }
+            AutodecrementDeferred => {
+                let address = self.registers.dec_get::<Word>(register).address::<Word>();
+                let address = self.ram[address].address::<Word>();
+                if self.mmio.is_io_space_word(address) {
+                    self.write_mmio_word(address, value);
+                } else {
+                    self.ram[address] = value;
+                }
+            }
+            Index => {
+                let offset = *self.word(Operand::pc());
+                let base = self.registers[register];
+                let address = (base + offset).address::<Word>();
+                if self.mmio.is_io_space_word(address) {
+                    self.write_mmio_word(address, value);
+                } else {
+                    self.ram[address] = value;
+                }
+            }
+            IndexDeferred => {
+                let offset = *self.word(Operand::pc());
+                let base = self.registers[register];
+                let address = (base + offset).address::<Word>();
+                let address = self.ram[address].address::<Word>();
+                if self.mmio.is_io_space_word(address) {
+                    self.write_mmio_word(address, value);
+                } else {
+                    self.ram[address] = value;
+                }
+            }
+        }
+    }
+
+    /// Write a byte to memory with MMIO routing
+    pub(super) fn write_byte(&mut self, operand: Operand, value: Byte) {
+        use RegisterAddressingMode::*;
+
+        let Operand { mode, register } = operand;
+
+        match mode {
+            Register => {
+                *self.registers[register].byte_mut(0) = value;
+            }
+            RegisterDeferred => {
+                let address = self.registers[register].address::<Byte>();
+                if self.mmio.is_io_space_byte(address) {
+                    self.write_mmio_byte(address, value);
+                } else {
+                    self.ram[address] = value;
+                }
+            }
+            Autoincrement => {
+                let address = self.registers.get_inc::<Byte>(register).address::<Byte>();
+                if self.mmio.is_io_space_byte(address) {
+                    self.write_mmio_byte(address, value);
+                } else {
+                    self.ram[address] = value;
+                }
+            }
+            AutoincrementDeferred => {
+                let address = self.registers.get_inc::<Word>(register).address::<Word>();
+                let address = self.ram[address].address::<Byte>();
+                if self.mmio.is_io_space_byte(address) {
+                    self.write_mmio_byte(address, value);
+                } else {
+                    self.ram[address] = value;
+                }
+            }
+            Autodecrement => {
+                let address = self.registers.dec_get::<Byte>(register).address::<Byte>();
+                if self.mmio.is_io_space_byte(address) {
+                    self.write_mmio_byte(address, value);
+                } else {
+                    self.ram[address] = value;
+                }
+            }
+            AutodecrementDeferred => {
+                let address = self.registers.dec_get::<Word>(register).address::<Word>();
+                let address = self.ram[address].address::<Byte>();
+                if self.mmio.is_io_space_byte(address) {
+                    self.write_mmio_byte(address, value);
+                } else {
+                    self.ram[address] = value;
+                }
+            }
+            Index => {
+                let offset = *self.word(Operand::pc());
+                let base = self.registers[register];
+                let address = (base + offset).address::<Byte>();
+                if self.mmio.is_io_space_byte(address) {
+                    self.write_mmio_byte(address, value);
+                } else {
+                    self.ram[address] = value;
+                }
+            }
+            IndexDeferred => {
+                let offset = *self.word(Operand::pc());
+                let base = self.registers[register];
+                let address = (base + offset).address::<Word>();
+                let address = self.ram[address].address::<Byte>();
+                if self.mmio.is_io_space_byte(address) {
+                    self.write_mmio_byte(address, value);
+                } else {
+                    self.ram[address] = value;
+                }
+            }
+        }
+    }
+
     /// Get the effective address for an operand (used for instructions like JMP)
     pub(super) fn effective_address(&mut self, operand: Operand) -> Word {
         use RegisterAddressingMode::*;

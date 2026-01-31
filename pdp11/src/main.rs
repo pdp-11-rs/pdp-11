@@ -27,6 +27,13 @@ fn main() -> io::Result<()> {
         core.step();
     }
 
+    if !core.is_halted() {
+        tracing::info!(
+            "Reached instruction limit of {} instructions",
+            max_instructions
+        );
+    }
+
     tracing::info!("Emulator stopped");
 
     Ok(())
