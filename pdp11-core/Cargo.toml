@@ -8,4 +8,4 @@ edition.workspace = true
 tracing = "0.1"
 
 [target.'cfg(unix)'.dependencies]
-libc = "0.2"
+termion = "4.0"

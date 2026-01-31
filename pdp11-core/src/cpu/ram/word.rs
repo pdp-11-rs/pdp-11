@@ -713,11 +713,11 @@ mod tests {
         // Little-endian: low byte first
         assert_eq!(bytes[0], (0o012345u16 & 0xFF) as u8);
         assert_eq!(bytes[1], ((0o012345u16 >> 8) & 0xFF) as u8);
-        
+
         // Test zero
         let zero = Word::ZERO;
         assert_eq!(zero.as_le_bytes(), &[0, 0]);
-        
+
         // Test max value
         let max = Word::from(0o177777u16);
         assert_eq!(max.as_le_bytes(), &[0xFF, 0xFF]);

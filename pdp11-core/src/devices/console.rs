@@ -1,8 +1,5 @@
 use crate::devices::*;
-use std::io::{self, Write, Read};
-
-#[cfg(unix)]
-use std::os::unix::io::AsRawFd;
+use std::io::{self, Write};
 
 /// DL11/KL11 Console Serial Interface
 ///
@@ -104,7 +101,7 @@ impl Console {
         {
             self.check_input_unix();
         }
-        
+
         #[cfg(not(unix))]
         {
             // Non-Unix platforms: input not supported yet
@@ -114,32 +111,19 @@ impl Console {
 
     #[cfg(unix)]
     fn check_input_unix(&mut self) {
-        use std::io::stdin;
-        
-        let stdin_fd = stdin().as_raw_fd();
-        
-        // Set stdin to non-blocking mode
-        unsafe {
-            let mut flags = libc::fcntl(stdin_fd, libc::F_GETFL, 0);
-            if flags != -1 {
-                flags |= libc::O_NONBLOCK;
-                libc::fcntl(stdin_fd, libc::F_SETFL, flags);
-            }
-        }
-        
+        use std::io::Read;
+
+        // Use termion's async stdin for non-blocking input
+        let mut async_stdin = termion::async_stdin();
+
         // Try to read one byte
         let mut buf = [0u8; 1];
-        match stdin().lock().read(&mut buf) {
-            Ok(1) => {
-                // Got a character
-                self.rbuf = Word::from(buf[0] as u16);
-                self.rcsr |= READER_DONE;
-            }
-            Ok(0) | Err(_) => {
-                // No data available or error (which is expected for non-blocking)
-            }
-            _ => {}
+        if let Ok(1) = async_stdin.read(&mut buf) {
+            // Got a character
+            self.rbuf = Word::from(buf[0] as u16);
+            self.rcsr |= READER_DONE;
         }
+        // No data available is normal for non-blocking, just return
     }
 
     /// Output a character to stdout

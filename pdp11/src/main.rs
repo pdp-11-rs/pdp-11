@@ -5,44 +5,17 @@ use pdp11_core::cpu;
 #[cfg(unix)]
 mod terminal {
     use std::io;
-    use std::os::unix::io::AsRawFd;
+    use termion::raw::{IntoRawMode, RawTerminal};
 
     pub struct RawMode {
-        original: libc::termios,
+        _stdout: RawTerminal<io::Stdout>,
     }
 
     impl RawMode {
         pub fn enable() -> io::Result<Self> {
-            unsafe {
-                let stdin_fd = io::stdin().as_raw_fd();
-                let mut original: libc::termios = std::mem::zeroed();
-                
-                if libc::tcgetattr(stdin_fd, &mut original) != 0 {
-                    return Err(io::Error::last_os_error());
-                }
-
-                let mut raw = original;
-                // Disable canonical mode, echo, and signals
-                raw.c_lflag &= !(libc::ICANON | libc::ECHO | libc::ISIG);
-                // Set minimum characters to 0 (non-blocking)
-                raw.c_cc[libc::VMIN] = 0;
-                raw.c_cc[libc::VTIME] = 0;
-
-                if libc::tcsetattr(stdin_fd, libc::TCSANOW, &raw) != 0 {
-                    return Err(io::Error::last_os_error());
-                }
-
-                Ok(RawMode { original })
-            }
-        }
-    }
-
-    impl Drop for RawMode {
-        fn drop(&mut self) {
-            unsafe {
-                let stdin_fd = io::stdin().as_raw_fd();
-                libc::tcsetattr(stdin_fd, libc::TCSANOW, &self.original);
-            }
+            // Put stdout into raw mode - this also affects stdin behavior
+            let stdout = io::stdout().into_raw_mode()?;
+            Ok(RawMode { _stdout: stdout })
         }
     }
 }
