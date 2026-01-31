@@ -144,20 +144,9 @@ impl Console {
 
     #[cfg(unix)]
     fn check_input_unix(&mut self) {
-        use std::io::Read;
-
-        // Use termion's async stdin for non-blocking input
-        let mut async_stdin = termion::async_stdin();
-
-        // Try to read one byte
-        let mut buf = [0u8; 1];
-        if let Ok(1) = async_stdin.read(&mut buf) {
-            // Got a character
-            self.rbuf = Word::from(buf[0] as u16);
-            self.rcsr |= READER_DONE;
-            self.update_rx_interrupt();
-        }
-        // No data available is normal for non-blocking, just return
+        // TODO: Implement non-blocking stdin without thread spawning
+        // For now, console input is disabled to avoid thread spawn issues
+        // when many processes are running
     }
 
     /// Output a character to stdout
