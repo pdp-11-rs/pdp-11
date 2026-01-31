@@ -1,6 +1,14 @@
 [workspace]
 resolver = "3"
-members = ["pdp11", "pdp11-core", "pdp11-common", "pdp11-asm", "pdp11-asm-cli"]
+members = [
+    "pdp11",
+    "pdp11-core",
+    "pdp11-common",
+    "pdp11-asm",
+    "pdp11-asm-cli",
+    "pdp11-disasm",
+]
+
 
 [workspace.package]
 edition = "2024"

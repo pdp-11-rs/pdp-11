@@ -9,7 +9,7 @@ pub use register::Registers;
 
 mod bootrom;
 mod impls;
-mod insns;
+pub mod insns;
 mod psw;
 mod ram;
 mod register;

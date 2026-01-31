@@ -1,0 +1,13 @@
+[package]
+name = "pdp11-disasm"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "pdp11-disasm"
+path = "src/main.rs"
+
+[dependencies]
+pdp11-core = { workspace = true }
+pdp11-common = { workspace = true }
+clap = { version = "4.5", features = ["derive"] }

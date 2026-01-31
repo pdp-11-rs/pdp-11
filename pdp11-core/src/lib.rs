@@ -6,7 +6,7 @@ use std::path::Path;
 // Re-export common types
 pub use pdp11_common::{Byte, Register, Word};
 
-pub use cpu::Cpu;
+pub use cpu::{Cpu, insns};
 
 pub mod cpu;
 pub mod devices;
