@@ -111,7 +111,6 @@ impl Console {
     }
 
     /// Manually input a character (for testing or when input is available)
-    #[cfg(test)]
     pub fn input_char(&mut self, ch: u8) {
         self.rbuf = Word::from(ch as u16);
         self.rcsr |= READER_DONE;

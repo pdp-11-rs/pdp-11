@@ -141,6 +141,18 @@ impl Cpu {
         self.registers[Register::PC]
     }
 
+    /// Inject a character into the console input buffer (for testing)
+    #[cfg(test)]
+    pub fn console_input(&mut self, ch: u8) {
+        self.console.input_char(ch);
+        // Sync to RAM - but DON'T read RBUF as that clears the DONE bit!
+        // Just write the internal console state directly
+        self.ram.write_direct(devices::console::RCSR, self.console.read_register(devices::console::RCSR));
+        // For RBUF, we need to access it without triggering the read side-effect
+        // So we'll write the character value directly
+        self.ram.write_direct(devices::console::RBUF, Word::from(ch as u16));
+    }
+
     pub fn step(&mut self) {
         let opcode = self.next_opcode();
         self.execute(opcode);
