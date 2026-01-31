@@ -147,10 +147,14 @@ impl Cpu {
         self.console.input_char(ch);
         // Sync to RAM - but DON'T read RBUF as that clears the DONE bit!
         // Just write the internal console state directly
-        self.ram.write_direct(devices::console::RCSR, self.console.read_register(devices::console::RCSR));
+        self.ram.write_direct(
+            devices::console::RCSR,
+            self.console.read_register(devices::console::RCSR),
+        );
         // For RBUF, we need to access it without triggering the read side-effect
         // So we'll write the character value directly
-        self.ram.write_direct(devices::console::RBUF, Word::from(ch as u16));
+        self.ram
+            .write_direct(devices::console::RBUF, Word::from(ch as u16));
     }
 
     pub fn step(&mut self) {

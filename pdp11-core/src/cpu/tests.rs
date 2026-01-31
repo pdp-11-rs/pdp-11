@@ -2103,35 +2103,43 @@ fn sub_register_from_itself() {
 #[ignore] // This test requires actual boot disk image
 fn test_boot_with_odt_go_command() {
     use std::path::Path;
-    
+
     // Only run if rk0.img exists
     let disk_path = "../rk0.img";
     if !Path::new(disk_path).exists() && !Path::new("rk0.img").exists() {
         println!("Skipping test: rk0.img not found");
         return;
     }
-    
-    let disk_to_use = if Path::new("rk0.img").exists() { "rk0.img" } else { disk_path };
-    
+
+    let disk_to_use = if Path::new("rk0.img").exists() {
+        "rk0.img"
+    } else {
+        disk_path
+    };
+
     let mut cpu = Cpu::new(disk_to_use).expect("Failed to load disk image");
     cpu.reset();
-    
+
     println!("Starting boot sequence...");
     let mut instruction_count = 0u64;
     let mut last_pc = Word::zero();
     let mut stable_count = 0;
-    
+
     // Run until we hit the ODT prompt (stable PC in a tight loop)
     for _ in 0..10_000_000 {
         cpu.step();
         instruction_count += 1;
-        
+
         let current_pc = cpu.pc_value();
         if current_pc == last_pc {
             stable_count += 1;
             if stable_count > 1000 {
                 // We've hit a stable loop, likely at ODT prompt
-                println!("Detected stable loop at PC={:#08o} after {} instructions", current_pc.as_u16(), instruction_count);
+                println!(
+                    "Detected stable loop at PC={:#08o} after {} instructions",
+                    current_pc.as_u16(),
+                    instruction_count
+                );
                 break;
             }
         } else {
@@ -2139,84 +2147,114 @@ fn test_boot_with_odt_go_command() {
             last_pc = current_pc;
         }
     }
-    
-    println!("Boot completed in {} instructions, PC at {:#08o}", instruction_count, last_pc.as_u16());
-    
+
+    println!(
+        "Boot completed in {} instructions, PC at {:#08o}",
+        instruction_count,
+        last_pc.as_u16()
+    );
+
     // Check what instruction is at the loop address
     let loop_addr = Address::<Word>::from_u16(last_pc.as_u16());
     let instruction_word = cpu.ram[loop_addr];
     println!("Instruction at loop PC: {:#08o}", instruction_word.as_u16());
-    
+
     // If it's TSTB @#addr (0o105737), the next word is the address being tested
     if instruction_word.as_u16() == 0o105737 {
         let target_addr_loc = Address::<Word>::from_u16(last_pc.as_u16() + 2);
         let target_addr = cpu.ram[target_addr_loc];
-        println!("TSTB is testing address: {:#08o} (RCSR={:#08o})", target_addr.as_u16(), devices::console::RCSR.as_u16());
-        
+        println!(
+            "TSTB is testing address: {:#08o} (RCSR={:#08o})",
+            target_addr.as_u16(),
+            devices::console::RCSR.as_u16()
+        );
+
         // Dump the next few instructions
         println!("Code around PC={:#08o}:", last_pc.as_u16());
         for offset in 0..10_u16 {
             let addr = Address::<Word>::from_u16(last_pc.as_u16() + (offset * 2));
             let word = cpu.ram[addr];
-            println!("  {:#08o}: {:#08o}", last_pc.as_u16() + (offset * 2), word.as_u16());
+            println!(
+                "  {:#08o}: {:#08o}",
+                last_pc.as_u16() + (offset * 2),
+                word.as_u16()
+            );
         }
     }
-    
+
     // Now inject "G" command followed by newline
     let initial_pc = cpu.pc_value();
     println!("Initial PC before 'G': {:#08o}", initial_pc.as_u16());
-    
+
     cpu.console_input(b'G');
     println!("Injected 'G' character into console");
-    
+
     // Check RCSR register
     let rcsr_addr = devices::console::RCSR;
     let rcsr_value = cpu.ram[rcsr_addr];
-    println!("RCSR after input: {:#08o} (READER_DONE bit 7 = {})", 
-             rcsr_value.as_u16(), (rcsr_value.as_u16() & 0o200) != 0);
-    
+    println!(
+        "RCSR after input: {:#08o} (READER_DONE bit 7 = {})",
+        rcsr_value.as_u16(),
+        (rcsr_value.as_u16() & 0o200) != 0
+    );
+
     // Give it time to process
     for _ in 0..1000 {
         cpu.step();
     }
-    
+
     let pc_after_input = cpu.pc_value();
-    println!("PC after processing input: {:#08o} (was {:#08o})", pc_after_input.as_u16(), initial_pc.as_u16());
-    println!("PSW flags: N={} Z={} V={} C={}", 
-             cpu.psw[psw::Flags::N], cpu.psw[psw::Flags::Z], 
-             cpu.psw[psw::Flags::V], cpu.psw[psw::Flags::C]);
-    
+    println!(
+        "PC after processing input: {:#08o} (was {:#08o})",
+        pc_after_input.as_u16(),
+        initial_pc.as_u16()
+    );
+    println!(
+        "PSW flags: N={} Z={} V={} C={}",
+        cpu.psw[psw::Flags::N],
+        cpu.psw[psw::Flags::Z],
+        cpu.psw[psw::Flags::V],
+        cpu.psw[psw::Flags::C]
+    );
+
     // Check RCSR again
     let rcsr_after = cpu.ram[devices::console::RCSR];
     println!("RCSR after 1000 steps: {:#08o}", rcsr_after.as_u16());
-    
+
     // Now send carriage return
     cpu.console_input(b'\r');
     println!("Injected CR character into console");
-    
+
     // Execute a few instructions to process the 'G' command
     let mut changed = false;
     for i in 0..100000 {
         cpu.step();
         let new_pc = cpu.pc_value();
-        
+
         // If PC changed significantly, the Go command worked
         if new_pc.as_u16().abs_diff(initial_pc.as_u16()) > 100 {
-            println!("✓ 'G' command worked! PC moved from {:#08o} to {:#08o} after {} instructions", 
-                     initial_pc.as_u16(), new_pc.as_u16(), i + 1);
+            println!(
+                "✓ 'G' command worked! PC moved from {:#08o} to {:#08o} after {} instructions",
+                initial_pc.as_u16(),
+                new_pc.as_u16(),
+                i + 1
+            );
             changed = true;
             break;
         }
     }
-    
+
     if !changed {
-        println!("✗ 'G' command did not cause PC to change from {:#08o}", initial_pc.as_u16());
+        println!(
+            "✗ 'G' command did not cause PC to change from {:#08o}",
+            initial_pc.as_u16()
+        );
         println!("This might mean:");
         println!("  - ODT doesn't recognize 'G' command (needs CR/LF?)");
         println!("  - Need to implement more instructions");
         println!("  - Boot sector doesn't support ODT commands");
     }
-    
+
     // Don't fail the test, just report results
     assert!(changed, "'G' command should cause execution to continue");
 }

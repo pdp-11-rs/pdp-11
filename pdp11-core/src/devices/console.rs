@@ -1,5 +1,8 @@
 use crate::devices::*;
-use std::io::{self, Write};
+use std::io::{self, Write, Read};
+
+#[cfg(unix)]
+use std::os::unix::io::AsRawFd;
 
 /// DL11/KL11 Console Serial Interface
 ///
@@ -96,9 +99,47 @@ impl Console {
 
     /// Check for input character (non-blocking)
     fn check_input(&mut self) {
-        // Use stdin in non-blocking mode
-        // For now, we'll skip non-blocking input as it requires platform-specific code
-        // In a real implementation, this would check if stdin has data available
+        // Try to read one byte from stdin without blocking
+        #[cfg(unix)]
+        {
+            self.check_input_unix();
+        }
+        
+        #[cfg(not(unix))]
+        {
+            // Non-Unix platforms: input not supported yet
+            // Could use Windows-specific APIs or a thread-based approach
+        }
+    }
+
+    #[cfg(unix)]
+    fn check_input_unix(&mut self) {
+        use std::io::stdin;
+        
+        let stdin_fd = stdin().as_raw_fd();
+        
+        // Set stdin to non-blocking mode
+        unsafe {
+            let mut flags = libc::fcntl(stdin_fd, libc::F_GETFL, 0);
+            if flags != -1 {
+                flags |= libc::O_NONBLOCK;
+                libc::fcntl(stdin_fd, libc::F_SETFL, flags);
+            }
+        }
+        
+        // Try to read one byte
+        let mut buf = [0u8; 1];
+        match stdin().lock().read(&mut buf) {
+            Ok(1) => {
+                // Got a character
+                self.rbuf = Word::from(buf[0] as u16);
+                self.rcsr |= READER_DONE;
+            }
+            Ok(0) | Err(_) => {
+                // No data available or error (which is expected for non-blocking)
+            }
+            _ => {}
+        }
     }
 
     /// Output a character to stdout

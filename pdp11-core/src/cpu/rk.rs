@@ -147,7 +147,7 @@ impl Rk {
         self.rkwc = Word::from(wc);
         self.rkba = Word::from(ba);
         self.rkcs = READY; // Set ready, clear GO
-        
+
         // Write updated registers back to RAM so CPU can see completion
         ram.write_direct(RKWC, self.rkwc);
         ram.write_direct(RKBA, self.rkba);
