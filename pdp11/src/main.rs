@@ -42,8 +42,9 @@ fn main() -> io::Result<()> {
         core.step();
         instruction_count += 1;
 
-        // Check for console input periodically
-        if instruction_count.is_multiple_of(check_input_interval) {
+        // Only check for console input after prompt is detected
+        // to avoid consuming input before ODT is ready
+        if prompt_detected && instruction_count.is_multiple_of(check_input_interval) {
             core.check_console_input();
         }
 
