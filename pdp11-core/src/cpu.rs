@@ -244,7 +244,7 @@ impl Cpu {
     }
 
     fn clr(&mut self, dst: Operand) {
-        self.word_mut(dst).clear();
+        self.write_word(dst, Word::ZERO);
         self.psw[Z] = true;
         self.psw[N] = false;
         self.psw[V] = false;
@@ -253,7 +253,7 @@ impl Cpu {
 
     fn asl(&mut self, operand: Operand) {
         let result = self.read_word(operand) << 1;
-        *self.word_mut(operand) = result;
+        self.write_word(operand, result);
     }
 
     /// JMP instruction: transfer control to the effective address
@@ -277,8 +277,9 @@ impl Cpu {
     }
 
     fn swab(&mut self, dst: Operand) {
-        self.word_mut(dst).swab();
-        let word = self.read_word(dst);
+        let mut word = self.read_word(dst);
+        word.swab();
+        self.write_word(dst, word);
         self.psw[Z] = word.is_zero();
         self.psw[N] = word.is_negative();
         self.psw[V] = false;
@@ -335,7 +336,7 @@ impl Cpu {
         let src = self.read_word(src);
         let dst_val = self.read_word(dst);
         let result = dst_val & !src;
-        *self.word_mut(dst) = result;
+        self.write_word(dst, result);
         self.psw[Z] = result.is_zero();
         self.psw[N] = result.is_negative();
         self.psw[V] = false;
@@ -347,7 +348,7 @@ impl Cpu {
         let src = self.read_word(src);
         let dst_val = self.read_word(dst);
         let result = dst_val | src;
-        *self.word_mut(dst) = result;
+        self.write_word(dst, result);
         self.psw[Z] = result.is_zero();
         self.psw[N] = result.is_negative();
         self.psw[V] = false;
@@ -365,7 +366,7 @@ impl Cpu {
         let result = Word::from(result_u16);
 
         // Store result
-        *self.word_mut(dst) = result;
+        self.write_word(dst, result);
 
         // Set flags
         self.psw[N] = result.is_negative();
@@ -390,7 +391,7 @@ impl Cpu {
         let result = Word::from(result_u16);
 
         // Store result
-        *self.word_mut(dst) = result;
+        self.write_word(dst, result);
 
         // Set flags
         self.psw[N] = result.is_negative();
@@ -601,7 +602,7 @@ impl Cpu {
     fn com(&mut self, dst: Operand) {
         // COM: Complement (one's complement)
         let result = !self.read_word(dst);
-        *self.word_mut(dst) = result;
+        self.write_word(dst, result);
         self.psw[N] = result.is_negative();
         self.psw[Z] = result.is_zero();
         self.psw[V] = false;
@@ -612,7 +613,7 @@ impl Cpu {
         // INC: Increment
         let value = self.read_word(dst);
         let result = value + Word::ONE;
-        *self.word_mut(dst) = result;
+        self.write_word(dst, result);
         self.psw[N] = result.is_negative();
         self.psw[Z] = result.is_zero();
         self.psw[V] = value == Word::MAX_POSITIVE; // Overflow from max positive
@@ -622,7 +623,7 @@ impl Cpu {
         // DEC: Decrement
         let value = self.read_word(dst);
         let result = value - Word::ONE;
-        *self.word_mut(dst) = result;
+        self.write_word(dst, result);
         self.psw[N] = result.is_negative();
         self.psw[Z] = result.is_zero();
         self.psw[V] = value == Word::MIN_NEGATIVE; // Overflow from min negative
@@ -632,7 +633,7 @@ impl Cpu {
         // NEG: Negate (two's complement)
         let value = self.read_word(dst);
         let result = -value;
-        *self.word_mut(dst) = result;
+        self.write_word(dst, result);
         self.psw[N] = result.is_negative();
         self.psw[Z] = result.is_zero();
         self.psw[V] = value == Word::MIN_NEGATIVE; // Overflow from min negative
@@ -644,7 +645,7 @@ impl Cpu {
         let value = self.read_word(dst);
         let carry = if self.psw[C] { Word::ONE } else { Word::ZERO };
         let result = value + carry;
-        *self.word_mut(dst) = result;
+        self.write_word(dst, result);
         self.psw[N] = result.is_negative();
         self.psw[Z] = result.is_zero();
         // Overflow if carry=1, value=077777 (max positive)
@@ -658,7 +659,7 @@ impl Cpu {
         let value = self.read_word(dst);
         let carry = if self.psw[C] { Word::ONE } else { Word::ZERO };
         let result = value - carry;
-        *self.word_mut(dst) = result;
+        self.write_word(dst, result);
         self.psw[N] = result.is_negative();
         self.psw[Z] = result.is_zero();
         // Overflow if carry=1, value=100000 (min negative)
@@ -673,7 +674,7 @@ impl Cpu {
         let old_carry = if self.psw[C] { Word::ONE } else { Word::ZERO };
         let new_carry = value.as_u16() & 1;
         let result = (value >> 1) | (old_carry << 15);
-        *self.word_mut(dst) = result;
+        self.write_word(dst, result);
         self.psw[N] = result.is_negative();
         self.psw[Z] = result.is_zero();
         self.psw[C] = new_carry != 0;
@@ -686,7 +687,7 @@ impl Cpu {
         let old_carry = if self.psw[C] { Word::ONE } else { Word::ZERO };
         let new_carry = (value.as_u16() >> 15) & 1;
         let result = (value << 1) | old_carry;
-        *self.word_mut(dst) = result;
+        self.write_word(dst, result);
         self.psw[N] = result.is_negative();
         self.psw[Z] = result.is_zero();
         self.psw[C] = new_carry != 0;
@@ -699,7 +700,7 @@ impl Cpu {
         let sign_bit = Word::from_u16(value.as_u16() & 0o100000);
         let new_carry = value.as_u16() & 1;
         let result = (value >> 1) | sign_bit;
-        *self.word_mut(dst) = result;
+        self.write_word(dst, result);
         self.psw[N] = result.is_negative();
         self.psw[Z] = result.is_zero();
         self.psw[C] = new_carry != 0;
@@ -769,7 +770,7 @@ impl Cpu {
     // Byte instructions
 
     fn clrb(&mut self, dst: Operand) {
-        self.byte_mut(dst).clear();
+        self.write_byte(dst, Byte::ZERO);
         self.psw[Z] = true;
         self.psw[N] = false;
         self.psw[V] = false;
@@ -779,7 +780,7 @@ impl Cpu {
     fn comb(&mut self, dst: Operand) {
         // COMB: Complement byte (one's complement)
         let result = !self.read_byte(dst);
-        *self.byte_mut(dst) = result;
+        self.write_byte(dst, result);
         self.psw[N] = result.is_negative();
         self.psw[Z] = result.is_zero();
         self.psw[V] = false;
@@ -790,7 +791,7 @@ impl Cpu {
         // INCB: Increment byte
         let value = self.read_byte(dst);
         let result = value + Byte::ONE;
-        *self.byte_mut(dst) = result;
+        self.write_byte(dst, result);
         self.psw[N] = result.is_negative();
         self.psw[Z] = result.is_zero();
         self.psw[V] = value == Byte::MAX_POSITIVE; // Overflow from max positive
@@ -800,7 +801,7 @@ impl Cpu {
         // DECB: Decrement byte
         let value = self.read_byte(dst);
         let result = value - Byte::ONE;
-        *self.byte_mut(dst) = result;
+        self.write_byte(dst, result);
         self.psw[N] = result.is_negative();
         self.psw[Z] = result.is_zero();
         self.psw[V] = value == Byte::MIN_NEGATIVE; // Overflow from min negative
@@ -810,7 +811,7 @@ impl Cpu {
         // NEGB: Negate byte (two's complement)
         let value = self.read_byte(dst);
         let result = -value;
-        *self.byte_mut(dst) = result;
+        self.write_byte(dst, result);
         self.psw[N] = result.is_negative();
         self.psw[Z] = result.is_zero();
         self.psw[V] = value == Byte::MIN_NEGATIVE; // Overflow from min negative
@@ -822,7 +823,7 @@ impl Cpu {
         let value = self.read_byte(dst);
         let carry = if self.psw[C] { Byte::ONE } else { Byte::ZERO };
         let result = value + carry;
-        *self.byte_mut(dst) = result;
+        self.write_byte(dst, result);
         self.psw[N] = result.is_negative();
         self.psw[Z] = result.is_zero();
         // Overflow if carry=1, value=0177 (max positive)
@@ -836,7 +837,7 @@ impl Cpu {
         let value = self.read_byte(dst);
         let carry = if self.psw[C] { Byte::ONE } else { Byte::ZERO };
         let result = value - carry;
-        *self.byte_mut(dst) = result;
+        self.write_byte(dst, result);
         self.psw[N] = result.is_negative();
         self.psw[Z] = result.is_zero();
         // Overflow if carry=1, value=0200 (min negative)
@@ -851,7 +852,7 @@ impl Cpu {
         let old_carry = if self.psw[C] { Byte::ONE } else { Byte::ZERO };
         let new_carry = value.as_u8() & 1;
         let result = (value >> 1) | (old_carry << 7);
-        *self.byte_mut(dst) = result;
+        self.write_byte(dst, result);
         self.psw[N] = result.is_negative();
         self.psw[Z] = result.is_zero();
         self.psw[C] = new_carry != 0;
@@ -864,7 +865,7 @@ impl Cpu {
         let old_carry = if self.psw[C] { Byte::ONE } else { Byte::ZERO };
         let new_carry = (value.as_u8() >> 7) & 1;
         let result = (value << 1) | old_carry;
-        *self.byte_mut(dst) = result;
+        self.write_byte(dst, result);
         self.psw[N] = result.is_negative();
         self.psw[Z] = result.is_zero();
         self.psw[C] = new_carry != 0;
@@ -877,7 +878,7 @@ impl Cpu {
         let sign_bit = Byte::from(value.as_u8() & 0o200);
         let new_carry = value.as_u8() & 1;
         let result = (value >> 1) | sign_bit;
-        *self.byte_mut(dst) = result;
+        self.write_byte(dst, result);
         self.psw[N] = result.is_negative();
         self.psw[Z] = result.is_zero();
         self.psw[C] = new_carry != 0;
@@ -886,7 +887,7 @@ impl Cpu {
 
     fn movb(&mut self, src: Operand, dst: Operand) {
         let byte = self.read_byte(src);
-        *self.byte_mut(dst) = byte;
+        self.write_byte(dst, byte);
         self.psw[N] = byte.is_negative();
         self.psw[Z] = byte.is_zero();
         self.psw[V] = false;
@@ -926,7 +927,7 @@ impl Cpu {
         let src = self.read_byte(src);
         let dst_val = self.read_byte(dst);
         let result = dst_val & !src;
-        *self.byte_mut(dst) = result;
+        self.write_byte(dst, result);
         self.psw[Z] = result.is_zero();
         self.psw[N] = result.is_negative();
         self.psw[V] = false;
@@ -938,7 +939,7 @@ impl Cpu {
         let src = self.read_byte(src);
         let dst_val = self.read_byte(dst);
         let result = dst_val | src;
-        *self.byte_mut(dst) = result;
+        self.write_byte(dst, result);
         self.psw[Z] = result.is_zero();
         self.psw[N] = result.is_negative();
         self.psw[V] = false;
