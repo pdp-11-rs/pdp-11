@@ -1,14 +1,15 @@
 [package]
-name = "pdp11-core"
+name = "pdp11-asm-cli"
 version.workspace = true
 edition.workspace = true
 
 [lints]
 workspace = true
 
-[dependencies]
-pdp11-common.workspace = true
-tracing.workspace = true
+[[bin]]
+name = "pdp11-asm"
+path = "src/main.rs"
 
-[target.'cfg(unix)'.dependencies]
-libc.workspace = true
+[dependencies]
+pdp11-asm.workspace = true
+pdp11-common.workspace = true

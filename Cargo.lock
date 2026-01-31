@@ -75,10 +75,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "pdp11-asm"
+version = "0.0.1"
+dependencies = [
+ "pdp11-common",
+]
+
+[[package]]
+name = "pdp11-asm-cli"
+version = "0.0.1"
+dependencies = [
+ "pdp11-asm",
+ "pdp11-common",
+]
+
+[[package]]
+name = "pdp11-common"
+version = "0.0.1"
+
+[[package]]
 name = "pdp11-core"
 version = "0.0.1"
 dependencies = [
  "libc",
+ "pdp11-common",
  "tracing",
 ]
 

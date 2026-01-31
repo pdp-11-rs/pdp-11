@@ -1,13 +1,11 @@
 use super::*;
 
 pub use insns::Instruction;
+pub use pdp11_common::Register::{self, *};
 pub use psw::{Flags::*, ProcessorStatusWord};
-pub use ram::Address;
-pub use ram::Byte;
-pub use ram::Ram;
-pub use ram::Word;
+pub use ram::{Address, Byte, Ram, Word, WordExt};
 pub use register::Registers;
-pub use register::{Register, Register::*};
+// Word, Byte re-exported from pdp11_common via ram module
 
 mod bootrom;
 mod impls;
@@ -675,7 +673,7 @@ impl Cpu {
         // Dividend is R|R+1 (32-bit), Divisor is src (16-bit)
         // Quotient -> R, Remainder -> R+1
 
-        let divisor = self.read_word(src).as_u16() as i16 as i32;
+        let divisor = self.read_word(src).as_i32();
 
         // Check for divide by zero
         if divisor == 0 {
@@ -687,7 +685,7 @@ impl Cpu {
         // Build 32-bit dividend from register pair
         let reg_next = Register::from(((register as u8 + 1) & 0o7) as u16);
 
-        let high = self.registers[register].as_u16() as i16 as i32;
+        let high = self.registers[register].as_i32();
         let low = self.registers[reg_next].as_u16() as i32;
         let dividend = (high << 16) | low;
 
@@ -702,8 +700,8 @@ impl Cpu {
         }
 
         // Store results
-        self.registers[register] = Word::from(quotient as i16 as u16);
-        self.registers[reg_next] = Word::from(remainder as i16 as u16);
+        self.registers[register] = Word::from_i32(quotient);
+        self.registers[reg_next] = Word::from_i32(remainder);
 
         // Set flags
         self.psw[N] = (quotient as i16) < 0;
@@ -717,14 +715,14 @@ impl Cpu {
         // Multiply register by src (both 16-bit signed)
         // Result is 32-bit in register pair R|R+1
 
-        let multiplicand = self.registers[register].as_u16() as i16 as i32;
-        let multiplier = self.read_word(src).as_u16() as i16 as i32;
+        let multiplicand = self.registers[register].as_i32();
+        let multiplier = self.read_word(src).as_i32();
         let product = multiplicand.wrapping_mul(multiplier);
 
         // Store in register pair
         let reg_next = Register::from(((register as u8 + 1) & 0o7) as u16);
-        self.registers[register] = Word::from((product >> 16) as i16 as u16);
-        self.registers[reg_next] = Word::from(product as i16 as u16);
+        self.registers[register] = Word::from_i32(product >> 16);
+        self.registers[reg_next] = Word::from_i32(product);
 
         // Set flags
         self.psw[N] = product < 0;
@@ -1392,7 +1390,6 @@ pub trait MemoryAcceess: Into<Word> + From<Word> + Into<Word> + fmt::Debug + fmt
 
     fn from_le_bytes(bytes: &[u8]) -> Self;
     fn to_le(&self) -> Self::LittleEndian;
-    fn as_le_bytes(&self) -> &[u8];
     fn is_zero(&self) -> bool;
     fn is_negative(&self) -> bool;
 }

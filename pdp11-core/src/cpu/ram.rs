@@ -1,11 +1,52 @@
 use super::*;
+use std::marker::PhantomData;
+use std::ops::Range;
 
-pub use byte::Byte;
-pub use word::Address;
-pub use word::Word;
+pub use pdp11_common::{Byte, Word};
+pub use word::WordExt;
 
 mod byte;
 mod word;
+
+// Address type for memory addressing - this is RAM-specific, not Word-specific
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct Address<M>(Word, PhantomData<M>);
+
+impl<M> Address<M> {
+    pub const fn from_u16(address: u16) -> Self {
+        Self(Word::from_u16(address), PhantomData)
+    }
+
+    /// Get the u16 value of this address
+    pub fn as_u16(&self) -> u16 {
+        self.0.as_u16()
+    }
+
+    pub fn word_index(&self) -> usize {
+        self.0.as_usize() / 2
+    }
+
+    pub fn byte_index(&self) -> (usize, usize) {
+        let addr = self.0.as_usize();
+        (addr / 2, addr % 2)
+    }
+}
+
+impl<M> Address<M>
+where
+    M: MemoryAcceess,
+{
+    pub fn range(&self) -> Range<usize> {
+        let address = self.0.as_usize();
+        address..address + M::SIZE
+    }
+}
+
+impl<M> fmt::Display for Address<M> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:06o}", self.0.as_u16())
+    }
+}
 
 #[derive(Debug)]
 pub struct Ram([Word; 32 * 1024]);

@@ -14,7 +14,7 @@ Run `bd prime` for workflow context.
 1. Follow idiomatic Rust practices
 2. Write clear, maintainable code
 3. Use `cargo fmt` for formatting (run before every commit)
-4. Use `cargo clippy --all-targets` for linting (ensure zero warnings before commit)
+4. Use `cargo clippy --workspace --all-targets` for linting (ensure zero warnings before commit)
 5. Write unit tests for new functionality
 6. Document public APIs with comments
 7. Ensure compatibility with the latest stable Rust version
@@ -22,7 +22,7 @@ Run `bd prime` for workflow context.
 
 **Pre-commit checklist:**
 - `cargo fmt` - Format code
-- `cargo clippy --all-targets` - Must show zero warnings
+- `cargo clippy --workspace --all-targets` - Must show zero warnings
 - `cargo test` - All tests must pass
 
 

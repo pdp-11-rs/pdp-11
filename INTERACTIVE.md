@@ -12,6 +12,10 @@ cargo run --release
 ./demo.sh
 ```
 
+## Disk Image
+
+The current `rk0.img` is a minimal bootable test image. For a full RT-11 operating system experience, see [RT11-SETUP.md](RT11-SETUP.md) for instructions on obtaining and installing RT-11.
+
 ## What to Expect
 
 1. The emulator boots and displays the `@` prompt (ODT - Octal Debugging Technique)
