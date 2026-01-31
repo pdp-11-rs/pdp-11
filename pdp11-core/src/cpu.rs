@@ -843,7 +843,7 @@ impl Cpu {
         // Decrement register, branch backward if not zero
         // Offset is in words (multiply by 2 for byte offset)
 
-        self.registers[register] -= Word::from(1u16);
+        self.registers[register] -= Word::ONE;
 
         if !self.registers[register].is_zero() {
             // Branch backward by offset words

@@ -45,6 +45,9 @@ impl Word {
     /// Constant for one
     pub const ONE: Self = Self::from_u16(1);
 
+    /// Constant for two (commonly used for word-size increments)
+    pub const TWO: Self = Self::from_u16(2);
+
     /// Maximum positive value in PDP-11 two's complement (0o077777 = 32767)
     pub const MAX_POSITIVE: Self = Self::from_u16(0o077777);
 
@@ -454,8 +457,8 @@ mod tests {
     #[test]
     fn sub_wrapping() {
         // Test that subtraction wraps around at 16-bit boundary
-        let a = Word::from(0u16);
-        let b = Word::from(1u16);
+        let a = Word::ZERO;
+        let b = Word::ONE;
         let result = a - b;
         assert_eq!(result.as_u16(), 0xFFFFu16);
     }
@@ -519,8 +522,8 @@ mod tests {
 
     #[test]
     fn sub_assign_wrapping() {
-        let mut a = Word::from(0u16);
-        a -= Word::from(1u16);
+        let mut a = Word::ZERO;
+        a -= Word::ONE;
         assert_eq!(a.as_u16(), 0xFFFFu16);
     }
 
@@ -583,14 +586,14 @@ mod tests {
     #[test]
     fn add_zero_identity() {
         let a = Word::from(42u16);
-        let zero = Word::from(0u16);
+        let zero = Word::ZERO;
         assert_eq!(a + zero, a);
     }
 
     #[test]
     fn sub_zero_identity() {
         let a = Word::from(42u16);
-        let zero = Word::from(0u16);
+        let zero = Word::ZERO;
         assert_eq!(a - zero, a);
     }
 

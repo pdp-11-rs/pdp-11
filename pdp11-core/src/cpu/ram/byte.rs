@@ -12,6 +12,9 @@ impl Byte {
     /// Constant for one
     pub const ONE: Self = Self::from_u8(1);
 
+    /// Constant for two
+    pub const TWO: Self = Self::from_u8(2);
+
     /// Maximum positive value in PDP-11 two's complement (0o177 = 127)
     pub const MAX_POSITIVE: Self = Self::from_u8(0o177);
 
@@ -269,7 +272,7 @@ mod tests {
     #[test]
     fn add_wrapping() {
         let a = Byte::from(0xFFu8);
-        let b = Byte::from(1u8);
+        let b = Byte::ONE;
         let result = a + b;
         assert_eq!(result.as_u8(), 0);
     }
@@ -292,8 +295,8 @@ mod tests {
 
     #[test]
     fn sub_wrapping() {
-        let a = Byte::from(0u8);
-        let b = Byte::from(1u8);
+        let a = Byte::ZERO;
+        let b = Byte::ONE;
         let result = a - b;
         assert_eq!(result.as_u8(), 0xFFu8);
     }
@@ -316,7 +319,7 @@ mod tests {
     #[test]
     fn add_assign_wrapping() {
         let mut a = Byte::from(0xFFu8);
-        a += Byte::from(1u8);
+        a += Byte::ONE;
         assert_eq!(a.as_u8(), 0);
     }
 
@@ -343,8 +346,8 @@ mod tests {
 
     #[test]
     fn sub_assign_wrapping() {
-        let mut a = Byte::from(0u8);
-        a -= Byte::from(1u8);
+        let mut a = Byte::ZERO;
+        a -= Byte::ONE;
         assert_eq!(a.as_u8(), 0xFFu8);
     }
 
@@ -391,14 +394,14 @@ mod tests {
     #[test]
     fn add_zero_identity() {
         let a = Byte::from(42u8);
-        let zero = Byte::from(0u8);
+        let zero = Byte::ZERO;
         assert_eq!(a + zero, a);
     }
 
     #[test]
     fn sub_zero_identity() {
         let a = Byte::from(42u8);
-        let zero = Byte::from(0u8);
+        let zero = Byte::ZERO;
         assert_eq!(a - zero, a);
     }
 
@@ -420,7 +423,7 @@ mod tests {
 
     #[test]
     fn test_neg() {
-        assert_eq!((-Byte::from(1u8)).as_u8(), 0xFFu8);
+        assert_eq!((-Byte::ONE).as_u8(), 0xFFu8);
         assert_eq!((-Byte::from(0xFFu8)).as_u8(), 1u8);
         assert_eq!((-Byte::from(0x80u8)).as_u8(), 0x80u8); // -128 in 8-bit
         assert_eq!((-Byte::from(100u8)).as_u8(), 0x9Cu8);
@@ -437,7 +440,7 @@ mod tests {
     fn test_shr() {
         assert_eq!((Byte::from(0b10100u8) >> 1).as_u8(), 0b1010);
         assert_eq!((Byte::from(0b10100000u8) >> 4).as_u8(), 0b1010);
-        assert_eq!((Byte::from(1u8) >> 1).as_u8(), 0);
+        assert_eq!((Byte::ONE >> 1).as_u8(), 0);
     }
 
     #[test]
