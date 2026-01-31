@@ -102,8 +102,8 @@ impl Console {
         match address {
             RCSR => {
                 // Only enable and IE bits are writable
-                self.rcsr = (self.rcsr & !(READER_ENABLE | READER_IE)) 
-                          | (value & (READER_ENABLE | READER_IE));
+                self.rcsr = (self.rcsr & !(READER_ENABLE | READER_IE))
+                    | (value & (READER_ENABLE | READER_IE));
                 // Check if we should generate an interrupt
                 self.update_rx_interrupt();
             }
@@ -179,17 +179,15 @@ impl Console {
     /// Update receiver interrupt state based on DONE and IE bits
     fn update_rx_interrupt(&mut self) {
         // Interrupt pending if DONE is set and IE is enabled
-        self.rx_interrupt_pending = 
-            (self.rcsr & READER_DONE) != Word::zero() 
-            && (self.rcsr & READER_IE) != Word::zero();
+        self.rx_interrupt_pending =
+            (self.rcsr & READER_DONE) != Word::zero() && (self.rcsr & READER_IE) != Word::zero();
     }
 
     /// Update transmitter interrupt state based on READY and IE bits
     fn update_tx_interrupt(&mut self) {
         // Interrupt pending if READY is set and IE is enabled
-        self.tx_interrupt_pending = 
-            (self.xcsr & XMIT_READY) != Word::zero() 
-            && (self.xcsr & XMIT_IE) != Word::zero();
+        self.tx_interrupt_pending =
+            (self.xcsr & XMIT_READY) != Word::zero() && (self.xcsr & XMIT_IE) != Word::zero();
     }
 
     /// Check if receiver interrupt is pending

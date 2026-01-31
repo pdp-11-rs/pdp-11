@@ -1010,12 +1010,18 @@ impl Cpu {
 
         // Priority 4: Console receiver (vector 0o060)
         if self.console.rx_interrupt_pending() {
-            return Some((devices::console::CONSOLE_RX_VECTOR, devices::console::CONSOLE_PRIORITY));
+            return Some((
+                devices::console::CONSOLE_RX_VECTOR,
+                devices::console::CONSOLE_PRIORITY,
+            ));
         }
 
         // Priority 4: Console transmitter (vector 0o064)
         if self.console.tx_interrupt_pending() {
-            return Some((devices::console::CONSOLE_TX_VECTOR, devices::console::CONSOLE_PRIORITY));
+            return Some((
+                devices::console::CONSOLE_TX_VECTOR,
+                devices::console::CONSOLE_PRIORITY,
+            ));
         }
 
         None

@@ -2279,7 +2279,13 @@ fn test_console_rx_interrupt() {
 
     // Check that check_interrupts returns console RX vector
     let interrupt = cpu.check_interrupts();
-    assert_eq!(interrupt, Some((devices::console::CONSOLE_RX_VECTOR, devices::console::CONSOLE_PRIORITY)));
+    assert_eq!(
+        interrupt,
+        Some((
+            devices::console::CONSOLE_RX_VECTOR,
+            devices::console::CONSOLE_PRIORITY
+        ))
+    );
 
     // Read the character via console.read_register (should clear interrupt)
     let ch = cpu.console.read_register(devices::console::RBUF);
@@ -2305,16 +2311,24 @@ fn test_console_tx_interrupt() {
 
     // Check that check_interrupts returns console TX vector
     let interrupt = cpu.check_interrupts();
-    assert_eq!(interrupt, Some((devices::console::CONSOLE_TX_VECTOR, devices::console::CONSOLE_PRIORITY)));
+    assert_eq!(
+        interrupt,
+        Some((
+            devices::console::CONSOLE_TX_VECTOR,
+            devices::console::CONSOLE_PRIORITY
+        ))
+    );
 
     // Write a character
-    cpu.console.write_register(devices::console::XBUF, Word::from('B' as u16));
+    cpu.console
+        .write_register(devices::console::XBUF, Word::from('B' as u16));
 
     // Transmitter should still be ready (and interrupt still pending)
     assert!(cpu.console.tx_interrupt_pending());
 
     // Disable interrupts
-    cpu.console.write_register(devices::console::XCSR, Word::zero());
+    cpu.console
+        .write_register(devices::console::XCSR, Word::zero());
 
     // Now no interrupt should be pending
     assert!(!cpu.console.tx_interrupt_pending());
@@ -2325,8 +2339,10 @@ fn test_console_interrupt_priority() {
     let mut cpu = create_test_cpu();
 
     // Enable both RX and TX interrupts
-    cpu.console.write_register(devices::console::RCSR, Word::from_u16(0o000101));
-    cpu.console.write_register(devices::console::XCSR, Word::from_u16(0o000100));
+    cpu.console
+        .write_register(devices::console::RCSR, Word::from_u16(0o000101));
+    cpu.console
+        .write_register(devices::console::XCSR, Word::from_u16(0o000100));
 
     // Input a character to trigger RX interrupt
     cpu.console_input('X' as u8);
@@ -2337,14 +2353,24 @@ fn test_console_interrupt_priority() {
 
     // RX should be returned first (checked first in code)
     let interrupt = cpu.check_interrupts();
-    assert_eq!(interrupt, Some((devices::console::CONSOLE_RX_VECTOR, devices::console::CONSOLE_PRIORITY)));
+    assert_eq!(
+        interrupt,
+        Some((
+            devices::console::CONSOLE_RX_VECTOR,
+            devices::console::CONSOLE_PRIORITY
+        ))
+    );
 
     // Clear RX interrupt by reading
     cpu.console.read_register(devices::console::RBUF);
 
     // Now TX should be returned
     let interrupt = cpu.check_interrupts();
-    assert_eq!(interrupt, Some((devices::console::CONSOLE_TX_VECTOR, devices::console::CONSOLE_PRIORITY)));
+    assert_eq!(
+        interrupt,
+        Some((
+            devices::console::CONSOLE_TX_VECTOR,
+            devices::console::CONSOLE_PRIORITY
+        ))
+    );
 }
-
-
