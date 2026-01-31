@@ -25,6 +25,12 @@ const READER_ENABLE: Word = Word::from_u16(0o000001); // Receiver enable
 const READER_DONE: Word = Word::from_u16(0o000200); // Receiver done (data available)
 const XMIT_READY: Word = Word::from_u16(0o000200); // Transmitter ready
 
+impl Default for Console {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Console {
     /// Create a new console with default state
     pub fn new() -> Self {
@@ -55,7 +61,7 @@ impl Console {
             RBUF => {
                 // Reading RBUF clears the DONE bit
                 let data = self.rbuf;
-                self.rcsr = self.rcsr & !READER_DONE;
+                self.rcsr &= !READER_DONE;
                 data
             }
             XCSR => self.xcsr,
@@ -108,7 +114,7 @@ impl Console {
     #[cfg(test)]
     pub fn input_char(&mut self, ch: u8) {
         self.rbuf = Word::from(ch as u16);
-        self.rcsr = self.rcsr | READER_DONE;
+        self.rcsr |= READER_DONE;
     }
 }
 
