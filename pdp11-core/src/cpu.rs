@@ -252,8 +252,8 @@ impl Cpu {
     }
 
     fn asl(&mut self, operand: Operand) {
-        let word = self.word(operand).as_u16() << 1;
-        *self.word_mut(operand) = word.into();
+        let result = self.read_word(operand) << 1;
+        *self.word_mut(operand) = result;
     }
 
     /// JMP instruction: transfer control to the effective address
@@ -631,7 +631,7 @@ impl Cpu {
     fn neg(&mut self, dst: Operand) {
         // NEG: Negate (two's complement)
         let value = self.read_word(dst);
-        let result = Word::from_u16(0u16.wrapping_sub(value.as_u16()));
+        let result = -value;
         *self.word_mut(dst) = result;
         self.psw[N] = result.is_negative();
         self.psw[Z] = result.is_zero();
@@ -670,9 +670,13 @@ impl Cpu {
     fn ror(&mut self, dst: Operand) {
         // ROR: Rotate Right through carry
         let value = self.read_word(dst);
-        let old_carry = if self.psw[C] { 1u16 } else { 0u16 };
+        let old_carry = if self.psw[C] {
+            Word::from_u16(1)
+        } else {
+            Word::zero()
+        };
         let new_carry = value.as_u16() & 1;
-        let result = Word::from_u16((value.as_u16() >> 1) | (old_carry << 15));
+        let result = (value >> 1) | (old_carry << 15);
         *self.word_mut(dst) = result;
         self.psw[N] = result.is_negative();
         self.psw[Z] = result.is_zero();
@@ -683,9 +687,13 @@ impl Cpu {
     fn rol(&mut self, dst: Operand) {
         // ROL: Rotate Left through carry
         let value = self.read_word(dst);
-        let old_carry = if self.psw[C] { 1u16 } else { 0u16 };
+        let old_carry = if self.psw[C] {
+            Word::from_u16(1)
+        } else {
+            Word::zero()
+        };
         let new_carry = (value.as_u16() >> 15) & 1;
-        let result = Word::from_u16((value.as_u16() << 1) | old_carry);
+        let result = (value << 1) | old_carry;
         *self.word_mut(dst) = result;
         self.psw[N] = result.is_negative();
         self.psw[Z] = result.is_zero();
@@ -696,9 +704,9 @@ impl Cpu {
     fn asr(&mut self, dst: Operand) {
         // ASR: Arithmetic Shift Right (sign-extend)
         let value = self.read_word(dst);
-        let sign_bit = value.as_u16() & 0o100000;
+        let sign_bit = Word::from_u16(value.as_u16() & 0o100000);
         let new_carry = value.as_u16() & 1;
-        let result = Word::from_u16((value.as_u16() >> 1) | sign_bit);
+        let result = (value >> 1) | sign_bit;
         *self.word_mut(dst) = result;
         self.psw[N] = result.is_negative();
         self.psw[Z] = result.is_zero();
@@ -809,7 +817,7 @@ impl Cpu {
     fn negb(&mut self, dst: Operand) {
         // NEGB: Negate byte (two's complement)
         let value = self.read_byte(dst);
-        let result = Byte::from(0u8.wrapping_sub(value.as_u8()));
+        let result = -value;
         *self.byte_mut(dst) = result;
         self.psw[N] = result.is_negative();
         self.psw[Z] = result.is_zero();
@@ -848,9 +856,13 @@ impl Cpu {
     fn rorb(&mut self, dst: Operand) {
         // RORB: Rotate Right byte through carry
         let value = self.read_byte(dst);
-        let old_carry = if self.psw[C] { 1u8 } else { 0u8 };
+        let old_carry = if self.psw[C] {
+            Byte::from(1)
+        } else {
+            Byte::zero()
+        };
         let new_carry = value.as_u8() & 1;
-        let result = Byte::from((value.as_u8() >> 1) | (old_carry << 7));
+        let result = (value >> 1) | (old_carry << 7);
         *self.byte_mut(dst) = result;
         self.psw[N] = result.is_negative();
         self.psw[Z] = result.is_zero();
@@ -861,9 +873,13 @@ impl Cpu {
     fn rolb(&mut self, dst: Operand) {
         // ROLB: Rotate Left byte through carry
         let value = self.read_byte(dst);
-        let old_carry = if self.psw[C] { 1u8 } else { 0u8 };
+        let old_carry = if self.psw[C] {
+            Byte::from(1)
+        } else {
+            Byte::zero()
+        };
         let new_carry = (value.as_u8() >> 7) & 1;
-        let result = Byte::from((value.as_u8() << 1) | old_carry);
+        let result = (value << 1) | old_carry;
         *self.byte_mut(dst) = result;
         self.psw[N] = result.is_negative();
         self.psw[Z] = result.is_zero();
@@ -874,9 +890,9 @@ impl Cpu {
     fn asrb(&mut self, dst: Operand) {
         // ASRB: Arithmetic Shift Right byte (sign-extend)
         let value = self.read_byte(dst);
-        let sign_bit = value.as_u8() & 0o200;
+        let sign_bit = Byte::from(value.as_u8() & 0o200);
         let new_carry = value.as_u8() & 1;
-        let result = Byte::from((value.as_u8() >> 1) | sign_bit);
+        let result = (value >> 1) | sign_bit;
         *self.byte_mut(dst) = result;
         self.psw[N] = result.is_negative();
         self.psw[Z] = result.is_zero();
