@@ -76,7 +76,6 @@ name = "pdp11"
 version = "0.0.1"
 dependencies = [
  "pdp11-core",
- "termion",
  "tracing",
  "tracing-subscriber",
 ]

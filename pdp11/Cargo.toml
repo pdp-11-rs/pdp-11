@@ -8,6 +8,3 @@ edition.workspace = true
 pdp11-core.workspace = true
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-
-[target.'cfg(unix)'.dependencies]
-termion = "4.0"

@@ -2,24 +2,6 @@ use std::io;
 
 use pdp11_core::cpu;
 
-#[cfg(unix)]
-mod terminal {
-    use std::io;
-    use termion::raw::{IntoRawMode, RawTerminal};
-
-    pub struct RawMode {
-        _stdout: RawTerminal<io::Stdout>,
-    }
-
-    impl RawMode {
-        pub fn enable() -> io::Result<Self> {
-            // Put stdout into raw mode - this also affects stdin behavior
-            let stdout = io::stdout().into_raw_mode()?;
-            Ok(RawMode { _stdout: stdout })
-        }
-    }
-}
-
 fn main() -> io::Result<()> {
     // Initialize tracing subscriber with environment-based filtering
     // Defaults to INFO level if RUST_LOG is not set
@@ -30,22 +12,13 @@ fn main() -> io::Result<()> {
         )
         .init();
 
-    // Enable raw terminal mode on Unix for immediate character input
-    // Only enable if stdin is a TTY (interactive mode)
-    #[cfg(unix)]
-    let _raw_mode = if termion::is_tty(&std::io::stdin()) {
-        terminal::RawMode::enable().ok()
-    } else {
-        None
-    };
-
     let mut core = cpu::Cpu::new("rk0.img")?;
     core.reset();
 
     tracing::info!("Starting emulator...");
 
     // Run until halted, with progress reporting
-    let mut instruction_count = 10000u64;
+    let mut instruction_count = 0u64;
     let report_interval = 100_000;
     let mut last_pcs: Vec<u16> = Vec::with_capacity(100);
     loop {
