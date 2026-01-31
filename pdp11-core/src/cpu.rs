@@ -1252,7 +1252,9 @@ impl Cpu {
         }
 
         // Priority 5: RK11 disk (vector 0o220)
-        // TODO: Add RK11 interrupt support
+        if self.rk.interrupt_pending() {
+            return Some((devices::rk::RK11_VECTOR, devices::rk::RK11_PRIORITY));
+        }
 
         // Priority 4: Console receiver (vector 0o060)
         if self.console.rx_interrupt_pending() {

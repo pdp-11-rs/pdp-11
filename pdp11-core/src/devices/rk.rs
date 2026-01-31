@@ -7,6 +7,11 @@ use crate::devices::*;
 /// - 2 surfaces (heads)
 /// - 12 sectors per track
 /// - 256 words (512 bytes) per sector
+///
+/// **Specifications:**
+/// - Interrupt Vector: 0o220
+/// - Interrupt Priority: 5
+/// - Registers at 0o177400-0o177412
 pub struct Rk {
     image_file: PathBuf,
     image: Vec<u8>,
@@ -17,6 +22,8 @@ pub struct Rk {
     rkwc: Word, // Word Count
     rkba: Word, // Bus Address
     rkda: Word, // Disk Address
+    // Interrupt state
+    interrupt_pending: bool,
 }
 
 // RK11 Register addresses
@@ -28,9 +35,14 @@ pub const RKBA: Address<Word> = Address::from_u16(0o177410);
 pub const RKDA: Address<Word> = Address::from_u16(0o177412);
 
 // RKCS bits
-const GO: Word = Word::from_u16(0o000001); // Start operation
-const FUNC_READ: Word = Word::from_u16(0o000004); // Read function
-const READY: Word = Word::from_u16(0o000200); // Controller ready
+const GO: Word = Word::from_u16(0o000001); // Start operation (bit 0)
+const FUNC_READ: Word = Word::from_u16(0o000004); // Read function (bits 1-3)
+const IE: Word = Word::from_u16(0o000100); // Interrupt Enable (bit 6)
+const READY: Word = Word::from_u16(0o000200); // Controller ready (bit 7)
+
+// Interrupt vector and priority
+pub const RK11_VECTOR: u16 = 0o220;
+pub const RK11_PRIORITY: u8 = 5;
 
 // RK05 disk geometry
 const RK05_CYLINDERS: usize = 203;
@@ -72,6 +84,7 @@ impl Rk {
             rkwc: Word::zero(),
             rkba: Word::zero(),
             rkda: Word::zero(),
+            interrupt_pending: false,
         })
     }
 
@@ -88,6 +101,7 @@ impl Rk {
             rkwc: Word::zero(),
             rkba: Word::zero(),
             rkda: Word::zero(),
+            interrupt_pending: false,
         }
     }
 
@@ -173,6 +187,21 @@ impl Rk {
         self.rkwc = Word::from(wc);
         self.rkba = Word::from(ba);
         self.rkcs = READY; // Set ready, clear GO
+
+        // Generate interrupt if IE bit is set
+        if (self.rkcs & IE) != Word::zero() {
+            self.interrupt_pending = true;
+        }
+    }
+
+    /// Check if interrupt is pending
+    pub fn interrupt_pending(&self) -> bool {
+        self.interrupt_pending
+    }
+
+    /// Clear pending interrupt (called after interrupt is serviced)
+    pub fn clear_interrupt(&mut self) {
+        self.interrupt_pending = false;
     }
 }
 
