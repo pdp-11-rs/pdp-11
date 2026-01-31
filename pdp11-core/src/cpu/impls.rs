@@ -10,9 +10,9 @@ impl Cpu {
             Register => &self.registers[register],
             RegisterDeferred => {
                 let address = self.registers[register].address::<Word>();
-                // Check for console MMIO
-                if self.is_console_io(address) {
-                    self.io_temp = self.read_console(address);
+                // Check for MMIO (all devices including RK, console, etc.)
+                if self.mmio.is_io_space_word(address) {
+                    self.io_temp = self.read_mmio_word(address);
                     &self.io_temp
                 } else {
                     &self.ram[address]
@@ -20,9 +20,9 @@ impl Cpu {
             }
             Autoincrement => {
                 let address = self.registers.get_inc::<Word>(register).address::<Word>();
-                // Check for console MMIO
-                if self.is_console_io(address) {
-                    self.io_temp = self.read_console(address);
+                // Check for MMIO
+                if self.mmio.is_io_space_word(address) {
+                    self.io_temp = self.read_mmio_word(address);
                     &self.io_temp
                 } else {
                     &self.ram[address]
@@ -31,9 +31,9 @@ impl Cpu {
             AutoincrementDeferred => {
                 let address = self.registers.get_inc::<Word>(register).address::<Word>();
                 let address = self.ram[address].address::<Word>();
-                // Check for console MMIO
-                if self.is_console_io(address) {
-                    self.io_temp = self.read_console(address);
+                // Check for MMIO
+                if self.mmio.is_io_space_word(address) {
+                    self.io_temp = self.read_mmio_word(address);
                     &self.io_temp
                 } else {
                     &self.ram[address]
@@ -41,9 +41,9 @@ impl Cpu {
             }
             Autodecrement => {
                 let address = self.registers.dec_get::<Word>(register).address::<Word>();
-                // Check for console MMIO
-                if self.is_console_io(address) {
-                    self.io_temp = self.read_console(address);
+                // Check for MMIO
+                if self.mmio.is_io_space_word(address) {
+                    self.io_temp = self.read_mmio_word(address);
                     &self.io_temp
                 } else {
                     &self.ram[address]
@@ -52,9 +52,9 @@ impl Cpu {
             AutodecrementDeferred => {
                 let address = self.registers.dec_get::<Word>(register).address::<Word>();
                 let address = self.ram[address].address::<Word>();
-                // Check for console MMIO
-                if self.is_console_io(address) {
-                    self.io_temp = self.read_console(address);
+                // Check for MMIO
+                if self.mmio.is_io_space_word(address) {
+                    self.io_temp = self.read_mmio_word(address);
                     &self.io_temp
                 } else {
                     &self.ram[address]
@@ -66,9 +66,9 @@ impl Cpu {
                 // Add offset to register value to get final address
                 let base = self.registers[register];
                 let address = (base + offset).address::<Word>();
-                // Check for console MMIO
-                if self.is_console_io(address) {
-                    self.io_temp = self.read_console(address);
+                // Check for MMIO
+                if self.mmio.is_io_space_word(address) {
+                    self.io_temp = self.read_mmio_word(address);
                     &self.io_temp
                 } else {
                     &self.ram[address]
@@ -82,9 +82,9 @@ impl Cpu {
                 let address = (base + offset).address::<Word>();
                 // Dereference to get final address
                 let address = self.ram[address].address::<Word>();
-                // Check for console MMIO
-                if self.is_console_io(address) {
-                    self.io_temp = self.read_console(address);
+                // Check for MMIO
+                if self.mmio.is_io_space_word(address) {
+                    self.io_temp = self.read_mmio_word(address);
                     &self.io_temp
                 } else {
                     &self.ram[address]
