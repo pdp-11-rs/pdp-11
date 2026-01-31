@@ -611,21 +611,21 @@ impl Cpu {
     fn inc(&mut self, dst: Operand) {
         // INC: Increment
         let value = self.read_word(dst);
-        let result = value + Word::from_u16(1);
+        let result = value + Word::ONE;
         *self.word_mut(dst) = result;
         self.psw[N] = result.is_negative();
         self.psw[Z] = result.is_zero();
-        self.psw[V] = value == Word::from_u16(0o077777); // Overflow from max positive
+        self.psw[V] = value == Word::MAX_POSITIVE; // Overflow from max positive
     }
 
     fn dec(&mut self, dst: Operand) {
         // DEC: Decrement
         let value = self.read_word(dst);
-        let result = value - Word::from_u16(1);
+        let result = value - Word::ONE;
         *self.word_mut(dst) = result;
         self.psw[N] = result.is_negative();
         self.psw[Z] = result.is_zero();
-        self.psw[V] = value == Word::from_u16(0o100000); // Overflow from min negative
+        self.psw[V] = value == Word::MIN_NEGATIVE; // Overflow from min negative
     }
 
     fn neg(&mut self, dst: Operand) {
@@ -635,46 +635,42 @@ impl Cpu {
         *self.word_mut(dst) = result;
         self.psw[N] = result.is_negative();
         self.psw[Z] = result.is_zero();
-        self.psw[V] = value == Word::from_u16(0o100000); // Overflow from min negative
+        self.psw[V] = value == Word::MIN_NEGATIVE; // Overflow from min negative
         self.psw[C] = !result.is_zero(); // Clear if result is zero
     }
 
     fn adc(&mut self, dst: Operand) {
         // ADC: Add Carry
         let value = self.read_word(dst);
-        let carry = if self.psw[C] { 1u16 } else { 0u16 };
-        let result = value + Word::from_u16(carry);
+        let carry = if self.psw[C] { Word::ONE } else { Word::ZERO };
+        let result = value + carry;
         *self.word_mut(dst) = result;
         self.psw[N] = result.is_negative();
         self.psw[Z] = result.is_zero();
         // Overflow if carry=1, value=077777 (max positive)
-        self.psw[V] = carry == 1 && value == Word::from_u16(0o077777);
+        self.psw[V] = carry == Word::ONE && value == Word::MAX_POSITIVE;
         // Carry if value=177777 and carry=1
-        self.psw[C] = carry == 1 && value == Word::from_u16(0o177777);
+        self.psw[C] = carry == Word::ONE && value == Word::MAX_UNSIGNED;
     }
 
     fn sbc(&mut self, dst: Operand) {
         // SBC: Subtract Carry
         let value = self.read_word(dst);
-        let carry = if self.psw[C] { 1u16 } else { 0u16 };
-        let result = value - Word::from_u16(carry);
+        let carry = if self.psw[C] { Word::ONE } else { Word::ZERO };
+        let result = value - carry;
         *self.word_mut(dst) = result;
         self.psw[N] = result.is_negative();
         self.psw[Z] = result.is_zero();
         // Overflow if carry=1, value=100000 (min negative)
-        self.psw[V] = carry == 1 && value == Word::from_u16(0o100000);
+        self.psw[V] = carry == Word::ONE && value == Word::MIN_NEGATIVE;
         // Carry set if result borrows (value was 0 and carry was 1)
-        self.psw[C] = carry == 1 && value.is_zero();
+        self.psw[C] = carry == Word::ONE && value.is_zero();
     }
 
     fn ror(&mut self, dst: Operand) {
         // ROR: Rotate Right through carry
         let value = self.read_word(dst);
-        let old_carry = if self.psw[C] {
-            Word::from_u16(1)
-        } else {
-            Word::zero()
-        };
+        let old_carry = if self.psw[C] { Word::ONE } else { Word::ZERO };
         let new_carry = value.as_u16() & 1;
         let result = (value >> 1) | (old_carry << 15);
         *self.word_mut(dst) = result;
@@ -687,11 +683,7 @@ impl Cpu {
     fn rol(&mut self, dst: Operand) {
         // ROL: Rotate Left through carry
         let value = self.read_word(dst);
-        let old_carry = if self.psw[C] {
-            Word::from_u16(1)
-        } else {
-            Word::zero()
-        };
+        let old_carry = if self.psw[C] { Word::ONE } else { Word::ZERO };
         let new_carry = (value.as_u16() >> 15) & 1;
         let result = (value << 1) | old_carry;
         *self.word_mut(dst) = result;
@@ -797,21 +789,21 @@ impl Cpu {
     fn incb(&mut self, dst: Operand) {
         // INCB: Increment byte
         let value = self.read_byte(dst);
-        let result = value + 1u8.into();
+        let result = value + Byte::ONE;
         *self.byte_mut(dst) = result;
         self.psw[N] = result.is_negative();
         self.psw[Z] = result.is_zero();
-        self.psw[V] = value == 0o177u8.into(); // Overflow from max positive
+        self.psw[V] = value == Byte::MAX_POSITIVE; // Overflow from max positive
     }
 
     fn decb(&mut self, dst: Operand) {
         // DECB: Decrement byte
         let value = self.read_byte(dst);
-        let result = value - 1u8.into();
+        let result = value - Byte::ONE;
         *self.byte_mut(dst) = result;
         self.psw[N] = result.is_negative();
         self.psw[Z] = result.is_zero();
-        self.psw[V] = value == 0o200u8.into(); // Overflow from min negative
+        self.psw[V] = value == Byte::MIN_NEGATIVE; // Overflow from min negative
     }
 
     fn negb(&mut self, dst: Operand) {
@@ -821,46 +813,42 @@ impl Cpu {
         *self.byte_mut(dst) = result;
         self.psw[N] = result.is_negative();
         self.psw[Z] = result.is_zero();
-        self.psw[V] = value == 0o200u8.into(); // Overflow from min negative
+        self.psw[V] = value == Byte::MIN_NEGATIVE; // Overflow from min negative
         self.psw[C] = !result.is_zero(); // Clear if result is zero
     }
 
     fn adcb(&mut self, dst: Operand) {
         // ADCB: Add Carry to byte
         let value = self.read_byte(dst);
-        let carry = if self.psw[C] { 1u8 } else { 0u8 };
-        let result = value + carry.into();
+        let carry = if self.psw[C] { Byte::ONE } else { Byte::ZERO };
+        let result = value + carry;
         *self.byte_mut(dst) = result;
         self.psw[N] = result.is_negative();
         self.psw[Z] = result.is_zero();
         // Overflow if carry=1, value=0177 (max positive)
-        self.psw[V] = carry == 1 && value == 0o177u8.into();
+        self.psw[V] = carry == Byte::ONE && value == Byte::MAX_POSITIVE;
         // Carry if value=0377 and carry=1
-        self.psw[C] = carry == 1 && value == 0o377u8.into();
+        self.psw[C] = carry == Byte::ONE && value == Byte::MAX_UNSIGNED;
     }
 
     fn sbcb(&mut self, dst: Operand) {
         // SBCB: Subtract Carry from byte
         let value = self.read_byte(dst);
-        let carry = if self.psw[C] { 1u8 } else { 0u8 };
-        let result = value - carry.into();
+        let carry = if self.psw[C] { Byte::ONE } else { Byte::ZERO };
+        let result = value - carry;
         *self.byte_mut(dst) = result;
         self.psw[N] = result.is_negative();
         self.psw[Z] = result.is_zero();
         // Overflow if carry=1, value=0200 (min negative)
-        self.psw[V] = carry == 1 && value == 0o200u8.into();
+        self.psw[V] = carry == Byte::ONE && value == Byte::MIN_NEGATIVE;
         // Carry set if result borrows (value was 0 and carry was 1)
-        self.psw[C] = carry == 1 && value.is_zero();
+        self.psw[C] = carry == Byte::ONE && value.is_zero();
     }
 
     fn rorb(&mut self, dst: Operand) {
         // RORB: Rotate Right byte through carry
         let value = self.read_byte(dst);
-        let old_carry = if self.psw[C] {
-            Byte::from(1)
-        } else {
-            Byte::zero()
-        };
+        let old_carry = if self.psw[C] { Byte::ONE } else { Byte::ZERO };
         let new_carry = value.as_u8() & 1;
         let result = (value >> 1) | (old_carry << 7);
         *self.byte_mut(dst) = result;
@@ -873,11 +861,7 @@ impl Cpu {
     fn rolb(&mut self, dst: Operand) {
         // ROLB: Rotate Left byte through carry
         let value = self.read_byte(dst);
-        let old_carry = if self.psw[C] {
-            Byte::from(1)
-        } else {
-            Byte::zero()
-        };
+        let old_carry = if self.psw[C] { Byte::ONE } else { Byte::ZERO };
         let new_carry = (value.as_u8() >> 7) & 1;
         let result = (value << 1) | old_carry;
         *self.byte_mut(dst) = result;
