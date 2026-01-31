@@ -593,14 +593,14 @@ impl Cpu {
 
     /// Check if an address is in console I/O space and handle it
     pub(super) fn is_console_io(&self, address: Address<Word>) -> bool {
-        use mmio::MmioDevice;
+        use devices::mmio::MmioDevice;
         self.console.handles_word_address(address)
     }
 
     /// Check if an address is in RK11 I/O space
     #[allow(dead_code)]
     fn is_rk_io(&self, address: Address<Word>) -> bool {
-        use mmio::MmioDevice;
+        use devices::mmio::MmioDevice;
         self.rk.handles_word_address(address)
     }
 
@@ -613,7 +613,7 @@ impl Cpu {
     /// Read from MMIO device (word)
     #[allow(dead_code)]
     fn read_mmio_word(&mut self, address: Address<Word>) -> Word {
-        use mmio::MmioDevice;
+        use devices::mmio::MmioDevice;
         if self.console.handles_word_address(address) {
             self.console.read_word(address)
         } else if self.rk.handles_word_address(address) {
@@ -628,13 +628,13 @@ impl Cpu {
     /// Write to MMIO device (word)
     #[allow(dead_code)]
     fn write_mmio_word(&mut self, address: Address<Word>, value: Word) {
-        use mmio::MmioDevice;
+        use devices::mmio::MmioDevice;
         if self.console.handles_word_address(address) {
             self.console.write_word(address, value);
         } else if self.rk.handles_word_address(address) {
             self.rk.write_word(address, value);
             // Check if RK command was triggered
-            if address == rk::RKCS {
+            if address == devices::rk::RKCS {
                 self.rk.execute_pending_command(&mut self.ram);
             }
         } else if self.kw11.handles_word_address(address) {
@@ -645,7 +645,7 @@ impl Cpu {
     /// Read from MMIO device (byte)
     #[allow(dead_code)]
     fn read_mmio_byte(&mut self, address: Address<Byte>) -> Byte {
-        use mmio::MmioDevice;
+        use devices::mmio::MmioDevice;
         if self.console.handles_byte_address(address) {
             self.console.read_byte(address)
         } else if self.rk.handles_byte_address(address) {
@@ -660,14 +660,14 @@ impl Cpu {
     /// Write to MMIO device (byte)
     #[allow(dead_code)]
     fn write_mmio_byte(&mut self, address: Address<Byte>, value: Byte) {
-        use mmio::MmioDevice;
+        use devices::mmio::MmioDevice;
         if self.console.handles_byte_address(address) {
             self.console.write_byte(address, value);
         } else if self.rk.handles_byte_address(address) {
             self.rk.write_byte(address, value);
             // Check if RK command was triggered
             let word_addr = Address::<Word>::from_u16(address.word_index() as u16 * 2);
-            if word_addr == rk::RKCS {
+            if word_addr == devices::rk::RKCS {
                 self.rk.execute_pending_command(&mut self.ram);
             }
         } else if self.kw11.handles_byte_address(address) {
@@ -677,13 +677,13 @@ impl Cpu {
 
     /// Read from console register (for MMIO)
     pub(super) fn read_console(&mut self, address: Address<Word>) -> Word {
-        use mmio::MmioDevice;
+        use devices::mmio::MmioDevice;
         self.console.read_word(address)
     }
 
     /// Write to console register (for MMIO)
     pub(super) fn write_console(&mut self, address: Address<Word>, value: Word) {
-        use mmio::MmioDevice;
+        use devices::mmio::MmioDevice;
         self.console.write_word(address, value);
     }
 

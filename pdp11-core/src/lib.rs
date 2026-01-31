@@ -8,3 +8,4 @@ use std::path::PathBuf;
 pub use cpu::Cpu;
 
 pub mod cpu;
+pub mod devices;

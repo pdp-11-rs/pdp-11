@@ -10,15 +10,11 @@ pub use register::Registers;
 pub use register::{Register, Register::*};
 
 mod bootrom;
-mod console;
 mod impls;
 mod insns;
-mod kw11;
-mod mmio;
 mod psw;
 mod ram;
 mod register;
-mod rk;
 
 #[derive(Debug)]
 #[allow(dead_code)]
@@ -27,10 +23,10 @@ pub struct Cpu {
     registers: Registers,
     psw: ProcessorStatusWord,
     ram: Ram,
-    rk: rk::Rk,
-    console: console::Console,
-    kw11: kw11::Kw11,
-    mmio: mmio::MmioSpace,
+    rk: devices::Rk,
+    console: devices::Console,
+    kw11: devices::Kw11,
+    mmio: devices::MmioSpace,
     /// Temporary storage for memory-mapped I/O register reads
     /// This allows returning references to RK11 registers
     io_temp: Word,
@@ -75,9 +71,9 @@ impl From<u16> for RegisterAddressingMode {
 
 impl Cpu {
     pub fn new(rk: impl AsRef<Path>) -> io::Result<Self> {
-        let rk = rk::Rk::with_image(rk)?;
-        let console = console::Console::new();
-        let kw11 = kw11::Kw11::new();
+        let rk = devices::Rk::with_image(rk)?;
+        let console = devices::Console::new();
+        let kw11 = devices::Kw11::new();
         let mut ram = Ram::default();
 
         // Initialize peripheral registers in RAM
@@ -92,7 +88,7 @@ impl Cpu {
             rk,
             console,
             kw11,
-            mmio: mmio::MmioSpace::new(),
+            mmio: devices::MmioSpace::new(),
             io_temp: Word::zero(),
             io_temp_byte: Byte::zero(),
         };
@@ -104,9 +100,9 @@ impl Cpu {
     /// This avoids the need for temporary files in tests
     #[cfg(test)]
     pub fn for_testing() -> Self {
-        let rk = rk::Rk::empty();
-        let console = console::Console::new();
-        let kw11 = kw11::Kw11::new();
+        let rk = devices::Rk::empty();
+        let console = devices::Console::new();
+        let kw11 = devices::Kw11::new();
         let mut ram = Ram::default();
 
         // Initialize peripheral registers in RAM
@@ -121,13 +117,13 @@ impl Cpu {
             rk,
             console,
             kw11,
-            mmio: mmio::MmioSpace::new(),
+            mmio: devices::MmioSpace::new(),
             io_temp: Word::zero(),
             io_temp_byte: Byte::zero(),
         }
     }
 
-    pub fn poweron(mut self) {
+    pub fn poweron(&mut self) {
         self.reset();
         while !self.halt {
             let opcode = self.next_opcode();
@@ -985,7 +981,7 @@ impl Cpu {
 
         // Priority 6: KW11-L line clock (vector 0o100)
         if self.kw11.interrupt_pending() {
-            return Some((kw11::KW11_VECTOR, kw11::KW11_PRIORITY));
+            return Some((devices::kw11::KW11_VECTOR, devices::kw11::KW11_PRIORITY));
         }
 
         // Priority 5: RK11 disk (vector 0o220)

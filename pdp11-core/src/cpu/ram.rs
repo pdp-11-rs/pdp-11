@@ -46,8 +46,8 @@ impl Ram {
     }
 
     /// Direct write to RAM, bypassing memory-mapped I/O
-    /// Used for DMA operations from RK controller
-    pub(super) fn write_direct(&mut self, address: Address<Word>, value: Word) {
+    /// Used for DMA operations from RK controller and device initialization
+    pub fn write_direct(&mut self, address: Address<Word>, value: Word) {
         self.0[address.word_index()] = value;
     }
 

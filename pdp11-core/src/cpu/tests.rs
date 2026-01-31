@@ -1978,7 +1978,10 @@ fn swab_memory() {
     cpu.swab(Operand::register_deferred(R2));
 
     // Bytes swapped: [0x54, 0xFF] = 0xFF54 = 0o177524
-    assert_eq!(cpu.ram[Address::<Word>::from_u16(0o6000)].as_u16(), 0o177524);
+    assert_eq!(
+        cpu.ram[Address::<Word>::from_u16(0o6000)].as_u16(),
+        0o177524
+    );
 }
 
 // ============================================================================
