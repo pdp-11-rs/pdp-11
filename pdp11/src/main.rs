@@ -79,7 +79,7 @@ fn main() -> io::Result<()> {
             last_pcs.clear();
         }
 
-        if instruction_count % report_interval == 0 && !prompt_detected {
+        if instruction_count.is_multiple_of(report_interval) && !prompt_detected {
             tracing::info!("Executed {} instructions...", instruction_count);
         }
     }

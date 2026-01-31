@@ -2272,7 +2272,7 @@ fn test_console_rx_interrupt() {
     assert!(!cpu.console.rx_interrupt_pending());
 
     // Input a character
-    cpu.console_input('A' as u8);
+    cpu.console_input(b'A');
 
     // Verify interrupt is now pending
     assert!(cpu.console.rx_interrupt_pending());
@@ -2345,7 +2345,7 @@ fn test_console_interrupt_priority() {
         .write_register(devices::console::XCSR, Word::from_u16(0o000100));
 
     // Input a character to trigger RX interrupt
-    cpu.console_input('X' as u8);
+    cpu.console_input(b'X');
 
     // Both should be pending
     assert!(cpu.console.rx_interrupt_pending());
