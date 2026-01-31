@@ -137,6 +137,10 @@ impl Cpu {
         self.halt
     }
 
+    pub fn pc_value(&self) -> Word {
+        self.registers[Register::PC]
+    }
+
     pub fn step(&mut self) {
         let opcode = self.next_opcode();
         self.execute(opcode);
