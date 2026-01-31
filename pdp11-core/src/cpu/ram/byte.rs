@@ -22,7 +22,7 @@ impl Byte {
     pub const MAX_UNSIGNED: Self = Self::from_u8(0o377);
 
     pub const fn zero() -> Self {
-        Byte { le: [0] }
+        Self { le: [0] }
     }
 
     #[inline]
@@ -133,7 +133,7 @@ impl ops::Neg for Byte {
     type Output = Self;
 
     fn neg(self) -> Self::Output {
-        Byte::from_u8(0u8.wrapping_sub(self.as_u8()))
+        Self::from_u8(0u8.wrapping_sub(self.as_u8()))
     }
 }
 
@@ -141,7 +141,7 @@ impl ops::Shl<u32> for Byte {
     type Output = Self;
 
     fn shl(self, rhs: u32) -> Self::Output {
-        Byte::from_u8(self.as_u8() << rhs)
+        Self::from_u8(self.as_u8() << rhs)
     }
 }
 
@@ -149,7 +149,7 @@ impl ops::Shr<u32> for Byte {
     type Output = Self;
 
     fn shr(self, rhs: u32) -> Self::Output {
-        Byte::from_u8(self.as_u8() >> rhs)
+        Self::from_u8(self.as_u8() >> rhs)
     }
 }
 

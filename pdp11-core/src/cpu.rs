@@ -138,7 +138,7 @@ impl Cpu {
     }
 
     pub fn pc_value(&self) -> Word {
-        self.registers[Register::PC]
+        self.registers[PC]
     }
 
     /// Inject a character into the console input buffer (for testing)

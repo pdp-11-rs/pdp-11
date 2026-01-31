@@ -72,10 +72,10 @@ impl ops::Index<Flags> for ProcessorStatusWord {
 
     fn index(&self, index: Flags) -> &Self::Output {
         match index {
-            Flags::C => &self.carry,
-            Flags::V => &self.overflow,
-            Flags::Z => &self.zero,
-            Flags::N => &self.negative,
+            C => &self.carry,
+            V => &self.overflow,
+            Z => &self.zero,
+            N => &self.negative,
         }
     }
 }
@@ -83,10 +83,10 @@ impl ops::Index<Flags> for ProcessorStatusWord {
 impl ops::IndexMut<Flags> for ProcessorStatusWord {
     fn index_mut(&mut self, index: Flags) -> &mut Self::Output {
         match index {
-            Flags::C => &mut self.carry,
-            Flags::V => &mut self.overflow,
-            Flags::Z => &mut self.zero,
-            Flags::N => &mut self.negative,
+            C => &mut self.carry,
+            V => &mut self.overflow,
+            Z => &mut self.zero,
+            N => &mut self.negative,
         }
     }
 }

@@ -243,7 +243,7 @@ impl ops::Neg for Word {
     type Output = Self;
 
     fn neg(self) -> Self::Output {
-        Word::from_u16(0u16.wrapping_sub(self.as_u16()))
+        Self::from_u16(0u16.wrapping_sub(self.as_u16()))
     }
 }
 
@@ -251,7 +251,7 @@ impl ops::Shl<u32> for Word {
     type Output = Self;
 
     fn shl(self, rhs: u32) -> Self::Output {
-        Word::from_u16(self.as_u16() << rhs)
+        Self::from_u16(self.as_u16() << rhs)
     }
 }
 
@@ -259,7 +259,7 @@ impl ops::Shr<u32> for Word {
     type Output = Self;
 
     fn shr(self, rhs: u32) -> Self::Output {
-        Word::from_u16(self.as_u16() >> rhs)
+        Self::from_u16(self.as_u16() >> rhs)
     }
 }
 
@@ -372,7 +372,8 @@ impl MemoryAcceess for Word {
         // Convert [Byte; 2] to &[u8; 2] then to &[u8]
         // SAFETY: Byte is repr(transparent) over u8, so this is safe
         unsafe {
-            let bytes_ptr = &self.le as *const [Byte; 2] as *const [u8; 2];
+            let bytes_ptr: *const [Byte; 2] = &self.le;
+            let bytes_ptr = bytes_ptr as *const [u8; 2];
             &*bytes_ptr
         }
     }

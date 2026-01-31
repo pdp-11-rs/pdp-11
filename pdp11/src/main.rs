@@ -19,8 +19,7 @@ fn main() -> io::Result<()> {
 
     // Check if we should exit on prompt detection (for testing/CI)
     let exit_on_prompt = std::env::var("PDP11_EXIT_ON_PROMPT")
-        .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
-        .unwrap_or(false);
+        .is_ok_and(|v| v == "1" || v.eq_ignore_ascii_case("true"));
 
     if exit_on_prompt {
         tracing::info!("PDP11_EXIT_ON_PROMPT is set - will exit when boot completes");

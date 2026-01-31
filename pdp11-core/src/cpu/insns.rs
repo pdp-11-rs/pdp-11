@@ -497,7 +497,7 @@ impl From<Word> for Instruction {
             0o000270 => Sen,
             0o000257 => Ccc,
             0o000277 => Scc,
-            other => Instruction::Invalid(other),
+            other => Self::Invalid(other),
         }
     }
 }

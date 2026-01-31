@@ -2211,10 +2211,7 @@ fn test_boot_with_odt_go_command() {
     );
     println!(
         "PSW flags: N={} Z={} V={} C={}",
-        cpu.psw[psw::Flags::N],
-        cpu.psw[psw::Flags::Z],
-        cpu.psw[psw::Flags::V],
-        cpu.psw[psw::Flags::C]
+        cpu.psw[N], cpu.psw[Z], cpu.psw[V], cpu.psw[C]
     );
 
     // Check RCSR again
