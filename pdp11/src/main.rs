@@ -31,8 +31,13 @@ fn main() -> io::Result<()> {
         .init();
 
     // Enable raw terminal mode on Unix for immediate character input
+    // Only enable if stdin is a TTY (interactive mode)
     #[cfg(unix)]
-    let _raw_mode = terminal::RawMode::enable()?;
+    let _raw_mode = if termion::is_tty(&std::io::stdin()) {
+        terminal::RawMode::enable().ok()
+    } else {
+        None
+    };
 
     let mut core = cpu::Cpu::new("rk0.img")?;
     core.reset();
@@ -40,7 +45,7 @@ fn main() -> io::Result<()> {
     tracing::info!("Starting emulator...");
 
     // Run until halted, with progress reporting
-    let mut instruction_count = 0u64;
+    let mut instruction_count = 10000u64;
     let report_interval = 100_000;
     let mut last_pcs: Vec<u16> = Vec::with_capacity(100);
     loop {
