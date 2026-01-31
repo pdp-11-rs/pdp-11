@@ -152,25 +152,55 @@ impl Cpu {
             Register => self.registers[register].byte(0),
             RegisterDeferred => {
                 let address = self.registers[register].address::<Byte>();
-                &self.ram[address]
+                // Check for MMIO
+                if self.mmio.is_io_space_byte(address) {
+                    self.io_temp_byte = self.read_mmio_byte(address);
+                    &self.io_temp_byte
+                } else {
+                    &self.ram[address]
+                }
             }
             Autoincrement => {
                 let address = self.registers.get_inc::<Byte>(register).address::<Byte>();
-                &self.ram[address]
+                // Check for MMIO
+                if self.mmio.is_io_space_byte(address) {
+                    self.io_temp_byte = self.read_mmio_byte(address);
+                    &self.io_temp_byte
+                } else {
+                    &self.ram[address]
+                }
             }
             AutoincrementDeferred => {
                 let address = self.registers.get_inc::<Word>(register).address::<Word>();
                 let address = self.ram[address].address::<Byte>();
-                &self.ram[address]
+                // Check for MMIO
+                if self.mmio.is_io_space_byte(address) {
+                    self.io_temp_byte = self.read_mmio_byte(address);
+                    &self.io_temp_byte
+                } else {
+                    &self.ram[address]
+                }
             }
             Autodecrement => {
                 let address = self.registers.dec_get::<Byte>(register).address::<Byte>();
-                &self.ram[address]
+                // Check for MMIO
+                if self.mmio.is_io_space_byte(address) {
+                    self.io_temp_byte = self.read_mmio_byte(address);
+                    &self.io_temp_byte
+                } else {
+                    &self.ram[address]
+                }
             }
             AutodecrementDeferred => {
                 let address = self.registers.dec_get::<Word>(register).address::<Word>();
                 let address = self.ram[address].address::<Byte>();
-                &self.ram[address]
+                // Check for MMIO
+                if self.mmio.is_io_space_byte(address) {
+                    self.io_temp_byte = self.read_mmio_byte(address);
+                    &self.io_temp_byte
+                } else {
+                    &self.ram[address]
+                }
             }
             Index => {
                 // Get index offset from next word in instruction stream
@@ -178,7 +208,13 @@ impl Cpu {
                 // Add offset to register value to get final address
                 let base = self.registers[register];
                 let address = (base + offset).address::<Byte>();
-                &self.ram[address]
+                // Check for MMIO
+                if self.mmio.is_io_space_byte(address) {
+                    self.io_temp_byte = self.read_mmio_byte(address);
+                    &self.io_temp_byte
+                } else {
+                    &self.ram[address]
+                }
             }
             IndexDeferred => {
                 // Get index offset from next word in instruction stream
@@ -188,7 +224,13 @@ impl Cpu {
                 let address = (base + offset).address::<Word>();
                 // Dereference to get final address
                 let address = self.ram[address].address::<Byte>();
-                &self.ram[address]
+                // Check for MMIO
+                if self.mmio.is_io_space_byte(address) {
+                    self.io_temp_byte = self.read_mmio_byte(address);
+                    &self.io_temp_byte
+                } else {
+                    &self.ram[address]
+                }
             }
         }
     }
