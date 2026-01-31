@@ -3,6 +3,8 @@ name = "pdp11"
 version.workspace = true
 edition.workspace = true
 
+[lints]
+workspace = true
 
 [dependencies]
 pdp11-core.workspace = true

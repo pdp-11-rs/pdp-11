@@ -320,7 +320,7 @@ impl ops::AddAssign<usize> for Word {
 impl ops::AddAssign<u8> for Word {
     #[inline]
     fn add_assign(&mut self, rhs: u8) {
-        *self += rhs as u16;
+        *self += u16::from(rhs);
     }
 }
 
@@ -343,7 +343,7 @@ impl ops::SubAssign<u16> for Word {
 impl ops::SubAssign<u8> for Word {
     #[inline]
     fn sub_assign(&mut self, rhs: u8) {
-        *self -= rhs as u16;
+        *self -= u16::from(rhs);
     }
 }
 

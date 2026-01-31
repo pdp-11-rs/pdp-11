@@ -51,7 +51,7 @@ impl ProcessorStatusWord {
         if self.trap {
             value |= 0b0001_0000;
         }
-        value |= (self.ipl as u16 & 0x7) << 5;
+        value |= (u16::from(self.ipl) & 0x7) << 5;
         Word::from(value)
     }
 

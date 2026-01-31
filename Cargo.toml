@@ -6,6 +6,25 @@ members = ["pdp11", "pdp11-core"]
 edition = "2024"
 version = "0.0.1"
 
+[workspace.lints.rust]
+unused_must_use = "warn"
+unused_imports = "warn"
+dead_code = "warn"
+unreachable_code = "warn"
+
+[workspace.lints.clippy]
+# Pedantic lints that catch common issues
+cast_lossless = "warn"
+char_lit_as_u8 = "deny"
+manual_is_multiple_of = "warn"
+needless_pass_by_value = "warn"
+unused_self = "warn"
+
+# Performance
+inefficient_to_string = "warn"
+
+# Style consistency
+module_name_repetitions = "allow"
 
 [workspace.dependencies]
 pdp11-core = { path = "pdp11-core" }

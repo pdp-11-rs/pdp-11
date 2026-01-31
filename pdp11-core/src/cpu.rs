@@ -154,7 +154,7 @@ impl Cpu {
         // For RBUF, we need to access it without triggering the read side-effect
         // So we'll write the character value directly
         self.ram
-            .write_direct(devices::console::RBUF, Word::from(ch as u16));
+            .write_direct(devices::console::RBUF, Word::from(u16::from(ch)));
     }
 
     pub fn step(&mut self) {
@@ -428,7 +428,7 @@ impl Cpu {
     fn branch(&mut self, offset: Offset) {
         // Offset is a signed byte offset in words (not bytes)
         // PC is already pointing to the next instruction
-        let offset_words = offset.0 as i16 * 2;
+        let offset_words = i16::from(offset.0) * 2;
         if offset_words >= 0 {
             self.registers[PC] += offset_words as u16;
         } else {
@@ -727,7 +727,8 @@ impl Cpu {
         self.psw[V] = self.psw[N] != self.psw[C]; // N xor C
     }
 
-    fn nop(&mut self) {
+    #[expect(clippy::unused_self)]
+    fn nop(&self) {
         // NOP: No operation
     }
 
@@ -1131,7 +1132,7 @@ impl fmt::Display for Operand {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Offset(i8);
 
 impl fmt::Display for Offset {

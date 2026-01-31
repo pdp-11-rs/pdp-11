@@ -143,14 +143,16 @@ impl Console {
     }
 
     #[cfg(unix)]
-    fn check_input_unix(&mut self) {
+    #[expect(clippy::unused_self)]
+    fn check_input_unix(&self) {
         // TODO: Implement non-blocking stdin without thread spawning
         // For now, console input is disabled to avoid thread spawn issues
         // when many processes are running
     }
 
     /// Output a character to stdout
-    fn output_char(&mut self, value: Word) {
+    #[expect(clippy::unused_self)]
+    fn output_char(&self, value: Word) {
         let ch = (value.as_u16() & 0o377) as u8; // Low byte only
         let stdout = io::stdout();
         let mut handle = stdout.lock();
@@ -160,7 +162,7 @@ impl Console {
 
     /// Manually input a character (for testing or when input is available)
     pub fn input_char(&mut self, ch: u8) {
-        self.rbuf = Word::from(ch as u16);
+        self.rbuf = Word::from(u16::from(ch));
         self.rcsr |= READER_DONE;
         self.update_rx_interrupt();
     }

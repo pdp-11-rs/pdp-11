@@ -121,9 +121,9 @@ impl MmioDevice for Kw11 {
         let mut word = self.read_word(word_addr);
 
         if address.as_u16() & 1 == 0 {
-            word = Word::from_u16((word.as_u16() & 0xFF00) | value.as_u8() as u16);
+            word = Word::from_u16((word.as_u16() & 0xFF00) | u16::from(value.as_u8()));
         } else {
-            word = Word::from_u16((word.as_u16() & 0x00FF) | ((value.as_u8() as u16) << 8));
+            word = Word::from_u16((word.as_u16() & 0x00FF) | (u16::from(value.as_u8()) << 8));
         }
 
         self.write_word(word_addr, word);
