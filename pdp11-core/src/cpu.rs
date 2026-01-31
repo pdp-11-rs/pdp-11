@@ -216,6 +216,8 @@ impl Cpu {
             Blt(offset) => self.blt(offset),
             Bgt(offset) => self.bgt(offset),
             Ble(offset) => self.ble(offset),
+            Bhi(offset) => self.bhi(offset),
+            Blos(offset) => self.blos(offset),
             Tstb(src) => self.tstb(src),
             Com(dst) => self.com(dst),
             Inc(dst) => self.inc(dst),
@@ -244,6 +246,9 @@ impl Cpu {
             Jsr(register, dst) => self.jsr(register, dst),
             Rts(register) => self.rts(register),
             Rti => self.rti(),
+            Xor(register, dst) => self.xor(register, dst),
+            Div(src, register) => self.div(src, register),
+            Iot => self.iot(),
             Nop => self.nop(),
             Clc => self.clc(),
             Sec => self.sec(),
@@ -539,6 +544,20 @@ impl Cpu {
         }
     }
 
+    fn bhi(&mut self, offset: Offset) {
+        // Branch if Higher (unsigned >: C=0 AND Z=0)
+        if !self.psw[C] && !self.psw[Z] {
+            self.branch(offset);
+        }
+    }
+
+    fn blos(&mut self, offset: Offset) {
+        // Branch if Lower or Same (unsigned <=: C=1 OR Z=1)
+        if self.psw[C] || self.psw[Z] {
+            self.branch(offset);
+        }
+    }
+
     fn tstb(&mut self, src: Operand) {
         let tstb = self.read_byte(src);
         self.psw[Z] = tstb.is_zero();
@@ -631,6 +650,73 @@ impl Cpu {
         let sp_addr = self.registers[SP].address::<Word>();
         self.registers[PC] = self.ram[sp_addr];
         self.registers[SP] += 2u16;
+    }
+
+    fn xor(&mut self, register: Register, dst: Operand) {
+        // XOR: Exclusive OR
+        let src_val = self.registers[register];
+        let dst_val = self.read_word(dst);
+        let result = src_val ^ dst_val;
+
+        self.write_word(dst, result);
+
+        self.psw[N] = result.is_negative();
+        self.psw[Z] = result.is_zero();
+        self.psw[V] = false;
+        // C is not affected
+    }
+
+    fn div(&mut self, src: Operand, register: Register) {
+        // DIV: Divide
+        // Dividend is R|R+1 (32-bit), Divisor is src (16-bit)
+        // Quotient -> R, Remainder -> R+1
+
+        let divisor = self.read_word(src).as_u16() as i16 as i32;
+
+        // Check for divide by zero
+        if divisor == 0 {
+            self.psw[V] = true; // Set overflow on divide by zero
+            self.psw[C] = false;
+            return;
+        }
+
+        // Build 32-bit dividend from register pair
+        let reg_next = Register::from(((register as u8 + 1) & 0o7) as u16);
+
+        let high = self.registers[register].as_u16() as i16 as i32;
+        let low = self.registers[reg_next].as_u16() as i32;
+        let dividend = (high << 16) | low;
+
+        let quotient = dividend / divisor;
+        let remainder = dividend % divisor;
+        
+        // Check for overflow (quotient doesn't fit in 16 bits)
+        if !(-32768..=32767).contains(&quotient) {
+            self.psw[V] = true;
+            self.psw[C] = false;
+            return;
+        }
+        
+        // Store results
+        self.registers[register] = Word::from(quotient as i16 as u16);
+        self.registers[reg_next] = Word::from(remainder as i16 as u16);
+        
+        // Set flags
+        self.psw[N] = (quotient as i16) < 0;
+        self.psw[Z] = quotient == 0;
+        self.psw[V] = false;
+        self.psw[C] = false;
+    }
+
+    fn iot(&mut self) {
+        // IOT: I/O Trap
+        // Trap to vector 020 (octal)
+        tracing::warn!("IOT instruction not fully implemented - would trap to vector 020");
+        // For now, just log it. Full implementation would:
+        // 1. Push PSW to stack
+        // 2. Push PC to stack
+        // 3. Load new PC from vector 020
+        // 4. Load new PSW from vector 022
     }
 
     fn com(&mut self, dst: Operand) {

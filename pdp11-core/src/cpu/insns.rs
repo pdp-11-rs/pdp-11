@@ -18,19 +18,21 @@ pub enum Instruction {
     Add(Operand, Operand),
     Sub(Operand, Operand),
     // Branch instructions
-    Br(Offset),  // Branch (unconditional)
-    Bne(Offset), // Branch if Not Equal (Z=0)
-    Beq(Offset), // Branch if Equal (Z=1)
-    Bpl(Offset), // Branch if Plus (N=0)
-    Bmi(Offset), // Branch if Minus (N=1)
-    Bvc(Offset), // Branch if oVerflow Clear (V=0)
-    Bvs(Offset), // Branch if oVerflow Set (V=1)
-    Bcc(Offset), // Branch if Carry Clear (C=0)
-    Bcs(Offset), // Branch if Carry Set (C=1)
-    Bge(Offset), // Branch if Greater or Equal (N xor V = 0)
-    Blt(Offset), // Branch if Less Than (N xor V = 1)
-    Bgt(Offset), // Branch if Greater Than (Z or (N xor V) = 0)
-    Ble(Offset), // Branch if Less or Equal (Z or (N xor V) = 1)
+    Br(Offset),   // Branch (unconditional)
+    Bne(Offset),  // Branch if Not Equal (Z=0)
+    Beq(Offset),  // Branch if Equal (Z=1)
+    Bpl(Offset),  // Branch if Plus (N=0)
+    Bmi(Offset),  // Branch if Minus (N=1)
+    Bvc(Offset),  // Branch if oVerflow Clear (V=0)
+    Bvs(Offset),  // Branch if oVerflow Set (V=1)
+    Bcc(Offset),  // Branch if Carry Clear (C=0)
+    Bcs(Offset),  // Branch if Carry Set (C=1)
+    Bge(Offset),  // Branch if Greater or Equal (N xor V = 0)
+    Blt(Offset),  // Branch if Less Than (N xor V = 1)
+    Bgt(Offset),  // Branch if Greater Than (Z or (N xor V) = 0)
+    Ble(Offset),  // Branch if Less or Equal (Z or (N xor V) = 1)
+    Bhi(Offset),  // Branch if Higher (unsigned >) (C=0 AND Z=0)
+    Blos(Offset), // Branch if Lower or Same (unsigned <=) (C=1 OR Z=1)
     Tstb(Operand),
     // Single operand instructions
     Com(Operand), // Complement (one's complement)
@@ -62,6 +64,9 @@ pub enum Instruction {
     Jsr(Register, Operand), // Jump to Subroutine
     Rts(Register),          // Return from Subroutine
     Rti,                    // Return from Interrupt
+    Xor(Register, Operand), // Exclusive OR
+    Div(Operand, Register), // Divide
+    Iot,                    // I/O Trap
     // PSW flag manipulation instructions
     Nop, // No Operation
     Clc, // Clear Carry
@@ -202,6 +207,14 @@ impl Instruction {
         Self::Ble(Self::branch_offset(opcode))
     }
 
+    fn bhi(opcode: u16) -> Self {
+        Self::Bhi(Self::branch_offset(opcode))
+    }
+
+    fn blos(opcode: u16) -> Self {
+        Self::Blos(Self::branch_offset(opcode))
+    }
+
     fn tstb(opcode: u16) -> Self {
         let src = Operand::from_0_5(opcode);
         Self::Tstb(src)
@@ -265,6 +278,22 @@ impl Instruction {
 
     fn rti() -> Self {
         Self::Rti
+    }
+
+    fn xor(opcode: u16) -> Self {
+        let register = Register::from((opcode >> 6) & 0o7);
+        let dst = Operand::from_0_5(opcode);
+        Self::Xor(register, dst)
+    }
+
+    fn div(opcode: u16) -> Self {
+        let register = Register::from((opcode >> 6) & 0o7);
+        let src = Operand::from_0_5(opcode);
+        Self::Div(src, register)
+    }
+
+    fn iot() -> Self {
+        Self::Iot
     }
 
     // Byte instruction decoders
@@ -379,6 +408,8 @@ impl Instruction {
             Blt(offset) => format!("BLT\t{offset}"),
             Bgt(offset) => format!("BGT\t{offset}"),
             Ble(offset) => format!("BLE\t{offset}"),
+            Bhi(offset) => format!("BHI\t{offset}"),
+            Blos(offset) => format!("BLOS\t{offset}"),
             Tstb(src) => format!("TSTB\t{src}"),
             Com(dst) => format!("COM\t{dst}"),
             Inc(dst) => format!("INC\t{dst}"),
@@ -407,6 +438,9 @@ impl Instruction {
             Jsr(register, dst) => format!("JSR\t{register}, {dst}"),
             Rts(register) => format!("RTS\t{register}"),
             Rti => "RTI".into(),
+            Xor(register, dst) => format!("XOR\t{register}, {dst}"),
+            Div(src, register) => format!("DIV\t{src}, {register}"),
+            Iot => "IOT".into(),
             Nop => "NOP".into(),
             Clc => "CLC".into(),
             Sec => "SEC".into(),
@@ -456,6 +490,8 @@ impl From<Word> for Instruction {
             opcode @ 0o002400..=0o002777 => Self::blt(opcode),
             opcode @ 0o003000..=0o003377 => Self::bgt(opcode),
             opcode @ 0o003400..=0o003777 => Self::ble(opcode),
+            opcode @ 0o101000..=0o101377 => Self::bhi(opcode),
+            opcode @ 0o101400..=0o101777 => Self::blos(opcode),
             opcode @ 0o105700..=0o105777 => Self::tstb(opcode),
             opcode @ 0o005100..=0o005177 => Self::com(opcode),
             opcode @ 0o005200..=0o005277 => Self::inc(opcode),
@@ -486,6 +522,9 @@ impl From<Word> for Instruction {
             opcode @ 0o004000..=0o004777 => Self::jsr(opcode),
             opcode @ 0o000200..=0o000207 => Self::rts(opcode),
             0o000002 => Self::rti(),
+            opcode @ 0o074000..=0o074777 => Self::xor(opcode),
+            opcode @ 0o071000..=0o071777 => Self::div(opcode),
+            0o000004 => Self::iot(),
             0o000240 => Nop,
             0o000241 => Clc,
             0o000261 => Sec,
