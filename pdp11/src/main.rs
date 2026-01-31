@@ -17,10 +17,22 @@ fn main() -> io::Result<()> {
 
     tracing::info!("Starting emulator...");
 
+    // Check if we should exit on prompt detection (for testing/CI)
+    let exit_on_prompt = std::env::var("PDP11_EXIT_ON_PROMPT")
+        .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+        .unwrap_or(false);
+
+    if exit_on_prompt {
+        tracing::info!("PDP11_EXIT_ON_PROMPT is set - will exit when boot completes");
+    } else {
+        tracing::info!("Running normally - use Ctrl+C to exit");
+    }
+
     // Run until halted, with progress reporting
     let mut instruction_count = 0u64;
     let report_interval = 100_000;
     let mut last_pcs: Vec<u16> = Vec::with_capacity(1000);
+    let mut prompt_detected = false;
 
     loop {
         if core.is_halted() {
@@ -35,7 +47,7 @@ fn main() -> io::Result<()> {
         last_pcs.push(pc);
 
         // Check every 1000 instructions if we're in a tight loop
-        if last_pcs.len() >= 1000 {
+        if !prompt_detected && last_pcs.len() >= 1000 {
             let mut unique_pcs = last_pcs.clone();
             unique_pcs.sort_unstable();
             unique_pcs.dedup();
@@ -54,21 +66,21 @@ fn main() -> io::Result<()> {
                         .map(|pc| format!("{:#08o}", pc))
                         .collect::<Vec<_>>()
                 );
-                break;
+
+                prompt_detected = true;
+
+                // Only exit if requested (for testing), otherwise continue running
+                if exit_on_prompt {
+                    break;
+                }
             }
 
             // Reset tracking window
             last_pcs.clear();
         }
 
-        if instruction_count % report_interval == 0 {
+        if instruction_count % report_interval == 0 && !prompt_detected {
             tracing::info!("Executed {} instructions...", instruction_count);
-        }
-
-        // Safety limit to prevent truly infinite loops
-        if instruction_count >= 1_000_000 {
-            tracing::warn!("Reached maximum instruction limit at PC={:#08o}", pc);
-            break;
         }
     }
 
