@@ -114,6 +114,60 @@ impl ops::Not for Byte {
     }
 }
 
+impl ops::Neg for Byte {
+    type Output = Self;
+
+    fn neg(self) -> Self::Output {
+        Byte::from_u8(0u8.wrapping_sub(self.as_u8()))
+    }
+}
+
+impl ops::Shl<u32> for Byte {
+    type Output = Self;
+
+    fn shl(self, rhs: u32) -> Self::Output {
+        Byte::from_u8(self.as_u8() << rhs)
+    }
+}
+
+impl ops::Shr<u32> for Byte {
+    type Output = Self;
+
+    fn shr(self, rhs: u32) -> Self::Output {
+        Byte::from_u8(self.as_u8() >> rhs)
+    }
+}
+
+impl ops::ShlAssign<u32> for Byte {
+    fn shl_assign(&mut self, rhs: u32) {
+        *self = *self << rhs;
+    }
+}
+
+impl ops::ShrAssign<u32> for Byte {
+    fn shr_assign(&mut self, rhs: u32) {
+        *self = *self >> rhs;
+    }
+}
+
+impl ops::BitAndAssign for Byte {
+    fn bitand_assign(&mut self, rhs: Self) {
+        *self = *self & rhs;
+    }
+}
+
+impl ops::BitOrAssign for Byte {
+    fn bitor_assign(&mut self, rhs: Self) {
+        *self = *self | rhs;
+    }
+}
+
+impl ops::BitXorAssign for Byte {
+    fn bitxor_assign(&mut self, rhs: Self) {
+        *self = *self ^ rhs;
+    }
+}
+
 impl ops::Add for Byte {
     type Output = Self;
 
@@ -347,5 +401,66 @@ mod tests {
         a += 10u8; // 0x0A
         a -= 20u8; // 0xF6 (wraps)
         assert_eq!(a.as_u8(), 0xF6u8);
+    }
+
+    #[test]
+    fn test_neg() {
+        assert_eq!((-Byte::from(1u8)).as_u8(), 0xFFu8);
+        assert_eq!((-Byte::from(0xFFu8)).as_u8(), 1u8);
+        assert_eq!((-Byte::from(0x80u8)).as_u8(), 0x80u8); // -128 in 8-bit
+        assert_eq!((-Byte::from(100u8)).as_u8(), 0x9Cu8);
+    }
+
+    #[test]
+    fn test_shl() {
+        assert_eq!((Byte::from(0b1010u8) << 1).as_u8(), 0b10100);
+        assert_eq!((Byte::from(0b1010u8) << 4).as_u8(), 0b10100000);
+        assert_eq!((Byte::from(0x80u8) << 1).as_u8(), 0); // Overflow
+    }
+
+    #[test]
+    fn test_shr() {
+        assert_eq!((Byte::from(0b10100u8) >> 1).as_u8(), 0b1010);
+        assert_eq!((Byte::from(0b10100000u8) >> 4).as_u8(), 0b1010);
+        assert_eq!((Byte::from(1u8) >> 1).as_u8(), 0);
+    }
+
+    #[test]
+    fn test_shl_assign() {
+        let mut b = Byte::from(0b1010u8);
+        b <<= 1;
+        assert_eq!(b.as_u8(), 0b10100);
+        b <<= 3;
+        assert_eq!(b.as_u8(), 0b10100000);
+    }
+
+    #[test]
+    fn test_shr_assign() {
+        let mut b = Byte::from(0b10100000u8);
+        b >>= 1;
+        assert_eq!(b.as_u8(), 0b1010000);
+        b >>= 3;
+        assert_eq!(b.as_u8(), 0b1010);
+    }
+
+    #[test]
+    fn test_bitand_assign() {
+        let mut b = Byte::from(0b1111u8);
+        b &= Byte::from(0b1010u8);
+        assert_eq!(b.as_u8(), 0b1010);
+    }
+
+    #[test]
+    fn test_bitor_assign() {
+        let mut b = Byte::from(0b1010u8);
+        b |= Byte::from(0b0101u8);
+        assert_eq!(b.as_u8(), 0b1111);
+    }
+
+    #[test]
+    fn test_bitxor_assign() {
+        let mut b = Byte::from(0b1111u8);
+        b ^= Byte::from(0b1010u8);
+        assert_eq!(b.as_u8(), 0b0101);
     }
 }

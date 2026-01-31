@@ -224,6 +224,60 @@ impl ops::Not for Word {
     }
 }
 
+impl ops::Neg for Word {
+    type Output = Self;
+
+    fn neg(self) -> Self::Output {
+        Word::from_u16(0u16.wrapping_sub(self.as_u16()))
+    }
+}
+
+impl ops::Shl<u32> for Word {
+    type Output = Self;
+
+    fn shl(self, rhs: u32) -> Self::Output {
+        Word::from_u16(self.as_u16() << rhs)
+    }
+}
+
+impl ops::Shr<u32> for Word {
+    type Output = Self;
+
+    fn shr(self, rhs: u32) -> Self::Output {
+        Word::from_u16(self.as_u16() >> rhs)
+    }
+}
+
+impl ops::ShlAssign<u32> for Word {
+    fn shl_assign(&mut self, rhs: u32) {
+        *self = *self << rhs;
+    }
+}
+
+impl ops::ShrAssign<u32> for Word {
+    fn shr_assign(&mut self, rhs: u32) {
+        *self = *self >> rhs;
+    }
+}
+
+impl ops::BitAndAssign for Word {
+    fn bitand_assign(&mut self, rhs: Self) {
+        *self = *self & rhs;
+    }
+}
+
+impl ops::BitOrAssign for Word {
+    fn bitor_assign(&mut self, rhs: Self) {
+        *self = *self | rhs;
+    }
+}
+
+impl ops::BitXorAssign for Word {
+    fn bitxor_assign(&mut self, rhs: Self) {
+        *self = *self ^ rhs;
+    }
+}
+
 impl ops::AddAssign for Word {
     #[inline]
     fn add_assign(&mut self, rhs: Self) {
@@ -567,5 +621,66 @@ mod tests {
         a += 10u16; // 0x000A
         a -= 20u16; // 0xFFF6 (wraps)
         assert_eq!(a.as_u16(), 0xFFF6u16);
+    }
+
+    #[test]
+    fn test_neg() {
+        assert_eq!((-Word::from(1u16)).as_u16(), 0xFFFFu16);
+        assert_eq!((-Word::from(0xFFFFu16)).as_u16(), 1u16);
+        assert_eq!((-Word::from(0x8000u16)).as_u16(), 0x8000u16); // -32768 in 16-bit
+        assert_eq!((-Word::from(100u16)).as_u16(), 0xFF9Cu16);
+    }
+
+    #[test]
+    fn test_shl() {
+        assert_eq!((Word::from(0b1010u16) << 1).as_u16(), 0b10100);
+        assert_eq!((Word::from(0b1010u16) << 4).as_u16(), 0b10100000);
+        assert_eq!((Word::from(0x8000u16) << 1).as_u16(), 0); // Overflow
+    }
+
+    #[test]
+    fn test_shr() {
+        assert_eq!((Word::from(0b10100u16) >> 1).as_u16(), 0b1010);
+        assert_eq!((Word::from(0b10100000u16) >> 4).as_u16(), 0b1010);
+        assert_eq!((Word::from(1u16) >> 1).as_u16(), 0);
+    }
+
+    #[test]
+    fn test_shl_assign() {
+        let mut w = Word::from(0b1010u16);
+        w <<= 1;
+        assert_eq!(w.as_u16(), 0b10100);
+        w <<= 3;
+        assert_eq!(w.as_u16(), 0b10100000);
+    }
+
+    #[test]
+    fn test_shr_assign() {
+        let mut w = Word::from(0b10100000u16);
+        w >>= 1;
+        assert_eq!(w.as_u16(), 0b1010000);
+        w >>= 3;
+        assert_eq!(w.as_u16(), 0b1010);
+    }
+
+    #[test]
+    fn test_bitand_assign() {
+        let mut w = Word::from(0b1111u16);
+        w &= Word::from(0b1010u16);
+        assert_eq!(w.as_u16(), 0b1010);
+    }
+
+    #[test]
+    fn test_bitor_assign() {
+        let mut w = Word::from(0b1010u16);
+        w |= Word::from(0b0101u16);
+        assert_eq!(w.as_u16(), 0b1111);
+    }
+
+    #[test]
+    fn test_bitxor_assign() {
+        let mut w = Word::from(0b1111u16);
+        w ^= Word::from(0b1010u16);
+        assert_eq!(w.as_u16(), 0b0101);
     }
 }
