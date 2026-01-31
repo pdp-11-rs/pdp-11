@@ -32,10 +32,36 @@ const GO: Word = Word::from_u16(0o000001); // Start operation
 const FUNC_READ: Word = Word::from_u16(0o000004); // Read function
 const READY: Word = Word::from_u16(0o000200); // Controller ready
 
+// RK05 disk geometry
+const RK05_CYLINDERS: usize = 203;
+const RK05_SURFACES: usize = 2;
+const RK05_SECTORS_PER_TRACK: usize = 12;
+const RK05_BYTES_PER_SECTOR: usize = 512;
+const RK05_TOTAL_SIZE: usize =
+    RK05_CYLINDERS * RK05_SURFACES * RK05_SECTORS_PER_TRACK * RK05_BYTES_PER_SECTOR;
+
 impl Rk {
     pub fn with_image(image: impl AsRef<Path>) -> io::Result<Self> {
         let image_file = image.as_ref().to_path_buf();
         let image = fs::read(&image_file)?;
+
+        // Validate disk image size
+        if image.len() != RK05_TOTAL_SIZE {
+            tracing::warn!(
+                "RK05 disk image size mismatch: expected {} bytes ({} MB), got {} bytes ({:.2} MB)",
+                RK05_TOTAL_SIZE,
+                RK05_TOTAL_SIZE / (1024 * 1024),
+                image.len(),
+                image.len() as f64 / (1024.0 * 1024.0)
+            );
+            tracing::warn!(
+                "RK05 geometry: {} cylinders × {} surfaces × {} sectors × {} bytes",
+                RK05_CYLINDERS,
+                RK05_SURFACES,
+                RK05_SECTORS_PER_TRACK,
+                RK05_BYTES_PER_SECTOR
+            );
+        }
 
         Ok(Self {
             image_file,
