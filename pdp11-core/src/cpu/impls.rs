@@ -93,6 +93,16 @@ impl Cpu {
         }
     }
 
+    /// Read a word from an operand (by value, handles MMIO)
+    pub(super) fn read_word(&mut self, operand: Operand) -> Word {
+        *self.word(operand)
+    }
+
+    /// Read a byte from an operand (by value, handles MMIO)
+    pub(super) fn read_byte(&mut self, operand: Operand) -> Byte {
+        *self.byte(operand)
+    }
+
     pub(super) fn word_mut(&mut self, operand: Operand) -> &mut Word {
         use RegisterAddressingMode::*;
 

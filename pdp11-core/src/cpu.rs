@@ -145,7 +145,7 @@ impl Cpu {
     }
 
     fn next_opcode(&mut self) -> Word {
-        *self.word(Operand::pc())
+        self.read_word(Operand::pc())
     }
 
     fn execute(&mut self, opcode: Word) {
@@ -265,7 +265,7 @@ impl Cpu {
         let target = match src.mode {
             Autoincrement | Autodecrement | AutoincrementDeferred | AutodecrementDeferred => {
                 // For these modes, read the target address from memory
-                *self.word(src)
+                self.read_word(src)
             }
             _ => {
                 // For other modes, use the effective address directly
@@ -278,7 +278,7 @@ impl Cpu {
 
     fn swab(&mut self, dst: Operand) {
         self.word_mut(dst).swab();
-        let word = *self.word(dst);
+        let word = self.read_word(dst);
         self.psw[Z] = word.is_zero();
         self.psw[N] = word.is_negative();
         self.psw[V] = false;
@@ -286,7 +286,7 @@ impl Cpu {
     }
 
     fn tst(&mut self, src: Operand) {
-        let tst = *self.word(src);
+        let tst = self.read_word(src);
         self.psw[Z] = tst.is_zero();
         self.psw[N] = tst.is_negative();
         self.psw[V] = false;
@@ -294,7 +294,7 @@ impl Cpu {
     }
 
     fn mov(&mut self, src: Operand, dst: Operand) {
-        let word = *self.word(src);
+        let word = self.read_word(src);
         self.write_word(dst, word);
         self.psw[N] = word.is_negative();
         self.psw[Z] = word.is_zero();
@@ -302,8 +302,8 @@ impl Cpu {
     }
 
     fn cmp(&mut self, src: Operand, dst: Operand) {
-        let src = *self.word(src);
-        let dst = *self.word(dst);
+        let src = self.read_word(src);
+        let dst = self.read_word(dst);
         let cmp = src - dst;
         self.psw[Z] = cmp.is_zero();
         self.psw[N] = cmp.is_negative();
@@ -322,8 +322,8 @@ impl Cpu {
     }
 
     fn bit(&mut self, src: Operand, dst: Operand) {
-        let src = *self.word(src);
-        let dst = *self.word(dst);
+        let src = self.read_word(src);
+        let dst = self.read_word(dst);
         let bit = src & dst;
         self.psw[Z] = bit.is_zero();
         self.psw[N] = bit.is_negative();
@@ -332,8 +332,8 @@ impl Cpu {
 
     fn bic(&mut self, src: Operand, dst: Operand) {
         // BIC: Bit Clear - dst = dst & ~src
-        let src = *self.word(src);
-        let dst_val = *self.word(dst);
+        let src = self.read_word(src);
+        let dst_val = self.read_word(dst);
         let result = dst_val & !src;
         *self.word_mut(dst) = result;
         self.psw[Z] = result.is_zero();
@@ -344,8 +344,8 @@ impl Cpu {
 
     fn bis(&mut self, src: Operand, dst: Operand) {
         // BIS: Bit Set - dst = dst | src
-        let src = *self.word(src);
-        let dst_val = *self.word(dst);
+        let src = self.read_word(src);
+        let dst_val = self.read_word(dst);
         let result = dst_val | src;
         *self.word_mut(dst) = result;
         self.psw[Z] = result.is_zero();
@@ -355,8 +355,8 @@ impl Cpu {
     }
 
     fn add(&mut self, src: Operand, dst: Operand) {
-        let src_val = *self.word(src);
-        let dst_val = *self.word(dst);
+        let src_val = self.read_word(src);
+        let dst_val = self.read_word(dst);
 
         // Perform addition with overflow detection
         let src_u16 = src_val.as_u16();
@@ -380,8 +380,8 @@ impl Cpu {
     }
 
     fn sub(&mut self, src: Operand, dst: Operand) {
-        let src_val = *self.word(src);
-        let dst_val = *self.word(dst);
+        let src_val = self.read_word(src);
+        let dst_val = self.read_word(dst);
 
         // Perform subtraction with underflow detection
         let src_u16 = src_val.as_u16();
@@ -505,7 +505,7 @@ impl Cpu {
     }
 
     fn tstb(&mut self, src: Operand) {
-        let tstb = *self.byte(src);
+        let tstb = self.read_byte(src);
         self.psw[Z] = tstb.is_zero();
         self.psw[N] = tstb.is_negative();
         self.psw[V] = false;
@@ -559,12 +559,12 @@ impl Cpu {
             }
             Index => {
                 // JSR X(Rn) means jump to address (Rn + X)
-                let offset = *self.word(Operand::pc());
+                let offset = self.read_word(Operand::pc());
                 self.registers[dst.register] + offset
             }
             IndexDeferred => {
                 // JSR @X(Rn) means jump to address pointed to by (Rn + X)
-                let offset = *self.word(Operand::pc());
+                let offset = self.read_word(Operand::pc());
                 let addr_of_addr = (self.registers[dst.register] + offset).address::<Word>();
                 self.ram[addr_of_addr]
             }
@@ -600,7 +600,7 @@ impl Cpu {
 
     fn com(&mut self, dst: Operand) {
         // COM: Complement (one's complement)
-        let result = !*self.word(dst);
+        let result = !self.read_word(dst);
         *self.word_mut(dst) = result;
         self.psw[N] = result.is_negative();
         self.psw[Z] = result.is_zero();
@@ -610,7 +610,7 @@ impl Cpu {
 
     fn inc(&mut self, dst: Operand) {
         // INC: Increment
-        let value = *self.word(dst);
+        let value = self.read_word(dst);
         let result = value + Word::from_u16(1);
         *self.word_mut(dst) = result;
         self.psw[N] = result.is_negative();
@@ -620,7 +620,7 @@ impl Cpu {
 
     fn dec(&mut self, dst: Operand) {
         // DEC: Decrement
-        let value = *self.word(dst);
+        let value = self.read_word(dst);
         let result = value - Word::from_u16(1);
         *self.word_mut(dst) = result;
         self.psw[N] = result.is_negative();
@@ -630,7 +630,7 @@ impl Cpu {
 
     fn neg(&mut self, dst: Operand) {
         // NEG: Negate (two's complement)
-        let value = *self.word(dst);
+        let value = self.read_word(dst);
         let result = Word::from_u16(0u16.wrapping_sub(value.as_u16()));
         *self.word_mut(dst) = result;
         self.psw[N] = result.is_negative();
@@ -641,7 +641,7 @@ impl Cpu {
 
     fn adc(&mut self, dst: Operand) {
         // ADC: Add Carry
-        let value = *self.word(dst);
+        let value = self.read_word(dst);
         let carry = if self.psw[C] { 1u16 } else { 0u16 };
         let result = value + Word::from_u16(carry);
         *self.word_mut(dst) = result;
@@ -655,7 +655,7 @@ impl Cpu {
 
     fn sbc(&mut self, dst: Operand) {
         // SBC: Subtract Carry
-        let value = *self.word(dst);
+        let value = self.read_word(dst);
         let carry = if self.psw[C] { 1u16 } else { 0u16 };
         let result = value - Word::from_u16(carry);
         *self.word_mut(dst) = result;
@@ -669,7 +669,7 @@ impl Cpu {
 
     fn ror(&mut self, dst: Operand) {
         // ROR: Rotate Right through carry
-        let value = *self.word(dst);
+        let value = self.read_word(dst);
         let old_carry = if self.psw[C] { 1u16 } else { 0u16 };
         let new_carry = value.as_u16() & 1;
         let result = Word::from_u16((value.as_u16() >> 1) | (old_carry << 15));
@@ -682,7 +682,7 @@ impl Cpu {
 
     fn rol(&mut self, dst: Operand) {
         // ROL: Rotate Left through carry
-        let value = *self.word(dst);
+        let value = self.read_word(dst);
         let old_carry = if self.psw[C] { 1u16 } else { 0u16 };
         let new_carry = (value.as_u16() >> 15) & 1;
         let result = Word::from_u16((value.as_u16() << 1) | old_carry);
@@ -695,7 +695,7 @@ impl Cpu {
 
     fn asr(&mut self, dst: Operand) {
         // ASR: Arithmetic Shift Right (sign-extend)
-        let value = *self.word(dst);
+        let value = self.read_word(dst);
         let sign_bit = value.as_u16() & 0o100000;
         let new_carry = value.as_u16() & 1;
         let result = Word::from_u16((value.as_u16() >> 1) | sign_bit);
@@ -778,7 +778,7 @@ impl Cpu {
 
     fn comb(&mut self, dst: Operand) {
         // COMB: Complement byte (one's complement)
-        let result = !*self.byte(dst);
+        let result = !self.read_byte(dst);
         *self.byte_mut(dst) = result;
         self.psw[N] = result.is_negative();
         self.psw[Z] = result.is_zero();
@@ -788,7 +788,7 @@ impl Cpu {
 
     fn incb(&mut self, dst: Operand) {
         // INCB: Increment byte
-        let value = *self.byte(dst);
+        let value = self.read_byte(dst);
         let result = value + 1u8.into();
         *self.byte_mut(dst) = result;
         self.psw[N] = result.is_negative();
@@ -798,7 +798,7 @@ impl Cpu {
 
     fn decb(&mut self, dst: Operand) {
         // DECB: Decrement byte
-        let value = *self.byte(dst);
+        let value = self.read_byte(dst);
         let result = value - 1u8.into();
         *self.byte_mut(dst) = result;
         self.psw[N] = result.is_negative();
@@ -808,7 +808,7 @@ impl Cpu {
 
     fn negb(&mut self, dst: Operand) {
         // NEGB: Negate byte (two's complement)
-        let value = *self.byte(dst);
+        let value = self.read_byte(dst);
         let result = Byte::from(0u8.wrapping_sub(value.as_u8()));
         *self.byte_mut(dst) = result;
         self.psw[N] = result.is_negative();
@@ -819,7 +819,7 @@ impl Cpu {
 
     fn adcb(&mut self, dst: Operand) {
         // ADCB: Add Carry to byte
-        let value = *self.byte(dst);
+        let value = self.read_byte(dst);
         let carry = if self.psw[C] { 1u8 } else { 0u8 };
         let result = value + carry.into();
         *self.byte_mut(dst) = result;
@@ -833,7 +833,7 @@ impl Cpu {
 
     fn sbcb(&mut self, dst: Operand) {
         // SBCB: Subtract Carry from byte
-        let value = *self.byte(dst);
+        let value = self.read_byte(dst);
         let carry = if self.psw[C] { 1u8 } else { 0u8 };
         let result = value - carry.into();
         *self.byte_mut(dst) = result;
@@ -847,7 +847,7 @@ impl Cpu {
 
     fn rorb(&mut self, dst: Operand) {
         // RORB: Rotate Right byte through carry
-        let value = *self.byte(dst);
+        let value = self.read_byte(dst);
         let old_carry = if self.psw[C] { 1u8 } else { 0u8 };
         let new_carry = value.as_u8() & 1;
         let result = Byte::from((value.as_u8() >> 1) | (old_carry << 7));
@@ -860,7 +860,7 @@ impl Cpu {
 
     fn rolb(&mut self, dst: Operand) {
         // ROLB: Rotate Left byte through carry
-        let value = *self.byte(dst);
+        let value = self.read_byte(dst);
         let old_carry = if self.psw[C] { 1u8 } else { 0u8 };
         let new_carry = (value.as_u8() >> 7) & 1;
         let result = Byte::from((value.as_u8() << 1) | old_carry);
@@ -873,7 +873,7 @@ impl Cpu {
 
     fn asrb(&mut self, dst: Operand) {
         // ASRB: Arithmetic Shift Right byte (sign-extend)
-        let value = *self.byte(dst);
+        let value = self.read_byte(dst);
         let sign_bit = value.as_u8() & 0o200;
         let new_carry = value.as_u8() & 1;
         let result = Byte::from((value.as_u8() >> 1) | sign_bit);
@@ -885,7 +885,7 @@ impl Cpu {
     }
 
     fn movb(&mut self, src: Operand, dst: Operand) {
-        let byte = *self.byte(src);
+        let byte = self.read_byte(src);
         *self.byte_mut(dst) = byte;
         self.psw[N] = byte.is_negative();
         self.psw[Z] = byte.is_zero();
@@ -893,8 +893,8 @@ impl Cpu {
     }
 
     fn cmpb(&mut self, src: Operand, dst: Operand) {
-        let src = *self.byte(src);
-        let dst = *self.byte(dst);
+        let src = self.read_byte(src);
+        let dst = self.read_byte(dst);
         let cmp = src - dst;
         self.psw[Z] = cmp.is_zero();
         self.psw[N] = cmp.is_negative();
@@ -913,8 +913,8 @@ impl Cpu {
     }
 
     fn bitb(&mut self, src: Operand, dst: Operand) {
-        let src = *self.byte(src);
-        let dst = *self.byte(dst);
+        let src = self.read_byte(src);
+        let dst = self.read_byte(dst);
         let bit = src & dst;
         self.psw[Z] = bit.is_zero();
         self.psw[N] = bit.is_negative();
@@ -923,8 +923,8 @@ impl Cpu {
 
     fn bicb(&mut self, src: Operand, dst: Operand) {
         // BICB: Bit Clear Byte - dst = dst & ~src
-        let src = *self.byte(src);
-        let dst_val = *self.byte(dst);
+        let src = self.read_byte(src);
+        let dst_val = self.read_byte(dst);
         let result = dst_val & !src;
         *self.byte_mut(dst) = result;
         self.psw[Z] = result.is_zero();
@@ -935,8 +935,8 @@ impl Cpu {
 
     fn bisb(&mut self, src: Operand, dst: Operand) {
         // BISB: Bit Set Byte - dst = dst | src
-        let src = *self.byte(src);
-        let dst_val = *self.byte(dst);
+        let src = self.read_byte(src);
+        let dst_val = self.read_byte(dst);
         let result = dst_val | src;
         *self.byte_mut(dst) = result;
         self.psw[Z] = result.is_zero();
