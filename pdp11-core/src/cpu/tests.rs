@@ -1621,3 +1621,477 @@ fn flag_instructions_only_affect_target_flag() {
     assert!(cpu.psw[V]);
     assert!(!cpu.psw[C]);
 }
+
+// ============================================================================
+// MOV Instruction Tests
+// ============================================================================
+
+#[test]
+fn mov_register_to_register() {
+    let mut cpu = create_test_cpu();
+    cpu.registers[R1] = 0o012345.into(); // Positive value (bit 15 clear)
+    cpu.registers[R2] = 0o000000.into();
+
+    // MOV R1, R2 (opcode 0o010102)
+    cpu.mov(Operand::reg(R1), Operand::reg(R2));
+
+    assert_eq!(cpu.registers[R2], 0o012345.into());
+    assert!(!cpu.psw[N]); // Positive number
+    assert!(!cpu.psw[Z]); // Not zero
+    assert!(!cpu.psw[V]); // V always cleared by MOV
+}
+
+#[test]
+fn mov_immediate_to_register() {
+    let mut cpu = create_test_cpu();
+    cpu.registers[PC] = 0o1000.into();
+    cpu.ram[Address::<Word>::from_u16(0o1000)] = 0o177777.into(); // -1 in octal
+
+    // MOV #value, R3 (autoincrement PC)
+    cpu.mov(Operand::autoincrement(PC), Operand::reg(R3));
+
+    assert_eq!(cpu.registers[R3], 0o177777.into());
+    assert!(cpu.psw[N]); // Negative number
+    assert!(!cpu.psw[Z]); // Not zero
+    assert!(!cpu.psw[V]);
+}
+
+#[test]
+fn mov_to_memory_register_deferred() {
+    let mut cpu = create_test_cpu();
+    cpu.registers[R1] = 0o042424.into();
+    cpu.registers[R2] = 0o5000.into(); // Address
+
+    // MOV R1, (R2)
+    cpu.mov(Operand::reg(R1), Operand::register_deferred(R2));
+
+    assert_eq!(cpu.ram[Address::<Word>::from_u16(0o5000)], 0o042424.into());
+}
+
+#[test]
+fn mov_with_autodecrement() {
+    let mut cpu = create_test_cpu();
+    cpu.registers[R1] = 0o1234.into();
+    cpu.registers[SP] = 0o10000.into();
+
+    // MOV R1, -(SP) - push R1 onto stack
+    cpu.mov(Operand::reg(R1), Operand::autodecrement(SP));
+
+    assert_eq!(cpu.registers[SP], 0o7776.into()); // SP decremented by 2
+    assert_eq!(cpu.ram[Address::<Word>::from_u16(0o7776)], 0o1234.into());
+}
+
+#[test]
+fn mov_sets_zero_flag() {
+    let mut cpu = create_test_cpu();
+    cpu.registers[R0] = 0o000000.into();
+
+    cpu.mov(Operand::reg(R0), Operand::reg(R1));
+
+    assert!(cpu.psw[Z]);
+    assert!(!cpu.psw[N]);
+    assert!(!cpu.psw[V]);
+}
+
+// ============================================================================
+// CMP Instruction Tests
+// ============================================================================
+
+#[test]
+fn cmp_equal_values() {
+    let mut cpu = create_test_cpu();
+    cpu.registers[R1] = 0o1234.into();
+    cpu.registers[R2] = 0o1234.into();
+
+    cpu.cmp(Operand::reg(R1), Operand::reg(R2));
+
+    assert!(cpu.psw[Z]); // Equal values set Z
+    assert!(!cpu.psw[N]);
+    assert!(!cpu.psw[V]);
+    assert!(!cpu.psw[C]);
+}
+
+#[test]
+fn cmp_src_greater_than_dst() {
+    let mut cpu = create_test_cpu();
+    cpu.registers[R1] = 0o5000.into();
+    cpu.registers[R2] = 0o3000.into();
+
+    cpu.cmp(Operand::reg(R1), Operand::reg(R2));
+
+    assert!(!cpu.psw[Z]);
+    assert!(!cpu.psw[N]); // Result is positive
+}
+
+#[test]
+fn cmp_src_less_than_dst() {
+    let mut cpu = create_test_cpu();
+    cpu.registers[R1] = 0o3000.into();
+    cpu.registers[R2] = 0o5000.into();
+
+    cpu.cmp(Operand::reg(R1), Operand::reg(R2));
+
+    assert!(!cpu.psw[Z]);
+    assert!(cpu.psw[N]); // Result is negative
+}
+
+#[test]
+fn cmp_with_memory() {
+    let mut cpu = create_test_cpu();
+    cpu.registers[R1] = 0o2000.into(); // Address
+    cpu.ram[Address::<Word>::from_u16(0o2000)] = 0o100.into();
+    cpu.registers[R2] = 0o100.into();
+
+    // CMP (R1), R2
+    cpu.cmp(Operand::register_deferred(R1), Operand::reg(R2));
+
+    assert!(cpu.psw[Z]); // Values are equal
+}
+
+// ============================================================================
+// ADD Instruction Tests
+// ============================================================================
+
+#[test]
+fn add_simple() {
+    let mut cpu = create_test_cpu();
+    cpu.registers[R1] = 0o100.into();
+    cpu.registers[R2] = 0o200.into();
+
+    // ADD R1, R2
+    cpu.add(Operand::reg(R1), Operand::reg(R2));
+
+    assert_eq!(cpu.registers[R2], 0o300.into());
+    assert!(!cpu.psw[N]);
+    assert!(!cpu.psw[Z]);
+    assert!(!cpu.psw[V]);
+    assert!(!cpu.psw[C]);
+}
+
+#[test]
+fn add_with_overflow() {
+    let mut cpu = create_test_cpu();
+    cpu.registers[R1] = 0o077777.into(); // Max positive 16-bit signed
+    cpu.registers[R2] = 0o000001.into();
+
+    cpu.add(Operand::reg(R1), Operand::reg(R2));
+
+    assert_eq!(cpu.registers[R2], 0o100000.into());
+    assert!(cpu.psw[V]); // Overflow from positive to negative
+    assert!(cpu.psw[N]); // Result is negative
+}
+
+#[test]
+fn add_with_carry() {
+    let mut cpu = create_test_cpu();
+    cpu.registers[R1] = 0o100000.into();
+    cpu.registers[R2] = 0o100000.into();
+
+    cpu.add(Operand::reg(R1), Operand::reg(R2));
+
+    assert_eq!(cpu.registers[R2], 0o000000.into());
+    assert!(cpu.psw[C]); // Carry out
+    assert!(cpu.psw[Z]); // Result is zero
+    assert!(cpu.psw[V]); // Overflow
+}
+
+#[test]
+fn add_to_memory() {
+    let mut cpu = create_test_cpu();
+    cpu.registers[R1] = 0o50.into();
+    cpu.registers[R2] = 0o3000.into();
+    cpu.ram[Address::<Word>::from_u16(0o3000)] = 0o100.into();
+
+    // ADD R1, (R2)
+    cpu.add(Operand::reg(R1), Operand::register_deferred(R2));
+
+    assert_eq!(cpu.ram[Address::<Word>::from_u16(0o3000)], 0o150.into());
+}
+
+// ============================================================================
+// SUB Instruction Tests
+// ============================================================================
+
+#[test]
+fn sub_simple() {
+    let mut cpu = create_test_cpu();
+    cpu.registers[R1] = 0o100.into();
+    cpu.registers[R2] = 0o300.into();
+
+    // SUB R1, R2 (R2 = R2 - R1)
+    cpu.sub(Operand::reg(R1), Operand::reg(R2));
+
+    assert_eq!(cpu.registers[R2], 0o200.into());
+    assert!(!cpu.psw[N]);
+    assert!(!cpu.psw[Z]);
+    assert!(!cpu.psw[V]);
+    assert!(!cpu.psw[C]);
+}
+
+#[test]
+fn sub_with_borrow() {
+    let mut cpu = create_test_cpu();
+    cpu.registers[R1] = 0o300.into();
+    cpu.registers[R2] = 0o100.into();
+
+    cpu.sub(Operand::reg(R1), Operand::reg(R2));
+
+    assert!(cpu.psw[C]); // Borrow occurred
+    assert!(cpu.psw[N]); // Result is negative
+}
+
+#[test]
+fn sub_resulting_in_zero() {
+    let mut cpu = create_test_cpu();
+    cpu.registers[R1] = 0o1234.into();
+    cpu.registers[R2] = 0o1234.into();
+
+    cpu.sub(Operand::reg(R1), Operand::reg(R2));
+
+    assert_eq!(cpu.registers[R2], 0o000000.into());
+    assert!(cpu.psw[Z]);
+    assert!(!cpu.psw[N]);
+}
+
+// ============================================================================
+// CLR Instruction Tests
+// ============================================================================
+
+#[test]
+fn clr_register() {
+    let mut cpu = create_test_cpu();
+    cpu.registers[R3] = 0o123456.into();
+
+    cpu.clr(Operand::reg(R3));
+
+    assert_eq!(cpu.registers[R3], 0o000000.into());
+    assert!(cpu.psw[Z]);
+    assert!(!cpu.psw[N]);
+    assert!(!cpu.psw[V]);
+    assert!(!cpu.psw[C]);
+}
+
+#[test]
+fn clr_memory() {
+    let mut cpu = create_test_cpu();
+    cpu.registers[R1] = 0o4000.into();
+    cpu.ram[Address::<Word>::from_u16(0o4000)] = 0o177777.into();
+
+    cpu.clr(Operand::register_deferred(R1));
+
+    assert_eq!(cpu.ram[Address::<Word>::from_u16(0o4000)], 0o000000.into());
+    assert!(cpu.psw[Z]);
+}
+
+// ============================================================================
+// TST Instruction Tests
+// ============================================================================
+
+#[test]
+fn tst_positive_value() {
+    let mut cpu = create_test_cpu();
+    cpu.registers[R1] = 0o1234.into();
+
+    cpu.tst(Operand::reg(R1));
+
+    assert!(!cpu.psw[N]);
+    assert!(!cpu.psw[Z]);
+    assert!(!cpu.psw[V]);
+    assert!(!cpu.psw[C]);
+}
+
+#[test]
+fn tst_negative_value() {
+    let mut cpu = create_test_cpu();
+    cpu.registers[R1] = 0o177777.into(); // -1
+
+    cpu.tst(Operand::reg(R1));
+
+    assert!(cpu.psw[N]);
+    assert!(!cpu.psw[Z]);
+    assert!(!cpu.psw[V]);
+    assert!(!cpu.psw[C]);
+}
+
+#[test]
+fn tst_zero_value() {
+    let mut cpu = create_test_cpu();
+    cpu.registers[R1] = 0o000000.into();
+
+    cpu.tst(Operand::reg(R1));
+
+    assert!(!cpu.psw[N]);
+    assert!(cpu.psw[Z]);
+    assert!(!cpu.psw[V]);
+    assert!(!cpu.psw[C]);
+}
+
+#[test]
+fn tst_memory_location() {
+    let mut cpu = create_test_cpu();
+    cpu.registers[R2] = 0o5000.into();
+    cpu.ram[Address::<Word>::from_u16(0o5000)] = 0o100000.into(); // Negative
+
+    cpu.tst(Operand::register_deferred(R2));
+
+    assert!(cpu.psw[N]);
+    assert!(!cpu.psw[Z]);
+}
+
+// ============================================================================
+// SWAB Instruction Tests
+// ============================================================================
+
+#[test]
+fn swab_basic() {
+    let mut cpu = create_test_cpu();
+    cpu.registers[R1] = 0o001234.into(); // 0x029C = bytes [0x9C, 0x02]
+
+    cpu.swab(Operand::reg(R1));
+
+    // After swap: bytes swapped = 0x9C02 = 0o116002
+    let result = cpu.registers[R1].as_u16();
+    assert_eq!(result, 0o116002);
+}
+
+#[test]
+fn swab_sets_flags() {
+    let mut cpu = create_test_cpu();
+    cpu.registers[R1] = 0o000200.into(); // Low byte: 0o200 (128), High byte: 0o000
+
+    cpu.swab(Operand::reg(R1));
+
+    // After swap: low byte 0o000, high byte 0o200
+    // Result is 0o100000 which is negative (bit 15 set)
+    assert!(cpu.psw[N]); // Negative because high bit is set
+    assert!(!cpu.psw[Z]); // Not zero
+    assert!(!cpu.psw[V]);
+    assert!(!cpu.psw[C]);
+}
+
+#[test]
+fn swab_memory() {
+    let mut cpu = create_test_cpu();
+    cpu.registers[R2] = 0o6000.into();
+    cpu.ram[Address::<Word>::from_u16(0o6000)] = 0o052377.into(); // 0x54FF = bytes [0xFF, 0x54]
+
+    cpu.swab(Operand::register_deferred(R2));
+
+    // Bytes swapped: [0x54, 0xFF] = 0xFF54 = 0o177524
+    assert_eq!(cpu.ram[Address::<Word>::from_u16(0o6000)].as_u16(), 0o177524);
+}
+
+// ============================================================================
+// MMIO Write Tests (Critical for boot ROM functionality)
+// ============================================================================
+
+#[test]
+fn mov_to_console_register() {
+    let mut cpu = create_test_cpu();
+    cpu.registers[R1] = 0o177564.into(); // Console XCSR address
+    cpu.registers[R2] = 0o000101.into(); // Enable transmit
+
+    // MOV R2, (R1) - Write to console control register
+    cpu.mov(Operand::reg(R2), Operand::register_deferred(R1));
+
+    // Should have written to console MMIO, not RAM
+    // (Console state is not directly observable, but this shouldn't panic)
+}
+
+#[test]
+fn mov_immediate_to_rk_register() {
+    let mut cpu = create_test_cpu();
+    cpu.registers[PC] = 0o2000.into();
+    cpu.ram[Address::<Word>::from_u16(0o2000)] = 0o000005.into(); // Command value
+    cpu.registers[R1] = 0o177404.into(); // RKCS address
+
+    // MOV #value, (R1) - Write command to RK11
+    cpu.mov(Operand::autoincrement(PC), Operand::register_deferred(R1));
+
+    // PC should advance
+    assert_eq!(cpu.registers[PC], 0o2002.into());
+}
+
+#[test]
+fn mov_with_autodecrement_to_io_space() {
+    let mut cpu = create_test_cpu();
+    cpu.registers[R1] = 0o177414.into(); // Just above RK11 range
+    cpu.registers[R2] = 0o001000.into();
+
+    // MOV R2, -(R1) - Should write to 0o177412 (RKDA)
+    cpu.mov(Operand::reg(R2), Operand::autodecrement(R1));
+
+    assert_eq!(cpu.registers[R1], 0o177412.into());
+    // Write should have gone to RK11 MMIO
+}
+
+// ============================================================================
+// Addressing Mode Combination Tests
+// ============================================================================
+
+#[test]
+fn mov_autoincrement_to_autodecrement() {
+    let mut cpu = create_test_cpu();
+    cpu.registers[R1] = 0o1000.into();
+    cpu.registers[R2] = 0o2000.into();
+    cpu.ram[Address::<Word>::from_u16(0o1000)] = 0o5555.into();
+
+    // MOV (R1)+, -(R2) - Copy and adjust both registers
+    cpu.mov(Operand::autoincrement(R1), Operand::autodecrement(R2));
+
+    assert_eq!(cpu.registers[R1], 0o1002.into()); // Incremented
+    assert_eq!(cpu.registers[R2], 0o1776.into()); // Decremented
+    assert_eq!(cpu.ram[Address::<Word>::from_u16(0o1776)], 0o5555.into());
+}
+
+#[test]
+fn add_from_memory_to_register() {
+    let mut cpu = create_test_cpu();
+    cpu.registers[R1] = 0o2000.into();
+    cpu.ram[Address::<Word>::from_u16(0o2000)] = 0o42.into();
+    cpu.registers[R2] = 0o100.into();
+
+    // ADD (R1), R2 - Add memory value to register
+    cpu.add(Operand::register_deferred(R1), Operand::reg(R2));
+
+    assert_eq!(cpu.registers[R2], 0o142.into());
+}
+
+// ============================================================================
+// Edge Case Tests
+// ============================================================================
+
+#[test]
+fn mov_pc_to_register() {
+    let mut cpu = create_test_cpu();
+    cpu.registers[PC] = 0o5432.into();
+
+    // MOV PC, R1
+    cpu.mov(Operand::reg(PC), Operand::reg(R1));
+
+    assert_eq!(cpu.registers[R1], 0o5432.into());
+}
+
+#[test]
+fn add_register_to_itself() {
+    let mut cpu = create_test_cpu();
+    cpu.registers[R1] = 0o1234.into();
+
+    // ADD R1, R1 (doubles the value)
+    cpu.add(Operand::reg(R1), Operand::reg(R1));
+
+    assert_eq!(cpu.registers[R1], 0o2470.into());
+}
+
+#[test]
+fn sub_register_from_itself() {
+    let mut cpu = create_test_cpu();
+    cpu.registers[R2] = 0o7777.into();
+
+    // SUB R2, R2 (should result in zero)
+    cpu.sub(Operand::reg(R2), Operand::reg(R2));
+
+    assert_eq!(cpu.registers[R2], 0o000000.into());
+    assert!(cpu.psw[Z]);
+    assert!(!cpu.psw[N]);
+}

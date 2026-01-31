@@ -1035,6 +1035,47 @@ impl Operand {
             register: PC,
         }
     }
+
+    // Helper constructors for tests
+    #[cfg(test)]
+    pub fn reg(register: Register) -> Self {
+        Self {
+            mode: RegisterAddressingMode::Register,
+            register,
+        }
+    }
+
+    #[cfg(test)]
+    pub fn register_deferred(register: Register) -> Self {
+        Self {
+            mode: RegisterAddressingMode::RegisterDeferred,
+            register,
+        }
+    }
+
+    #[cfg(test)]
+    pub fn autoincrement(register: Register) -> Self {
+        Self {
+            mode: RegisterAddressingMode::Autoincrement,
+            register,
+        }
+    }
+
+    #[cfg(test)]
+    pub fn autodecrement(register: Register) -> Self {
+        Self {
+            mode: RegisterAddressingMode::Autodecrement,
+            register,
+        }
+    }
+
+    #[cfg(test)]
+    pub fn index(register: Register) -> Self {
+        Self {
+            mode: RegisterAddressingMode::Index,
+            register,
+        }
+    }
 }
 
 impl fmt::Display for Operand {
