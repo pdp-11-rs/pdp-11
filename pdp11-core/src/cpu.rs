@@ -1039,7 +1039,7 @@ impl Cpu {
 
     /// Clear KW11-L interrupt (called after servicing)
     #[cfg(test)]
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     fn clear_kw11_interrupt(&mut self) {
         self.kw11.clear_interrupt();
     }

@@ -245,7 +245,7 @@ impl Cpu {
         }
     }
 
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     pub(super) fn byte_mut(&mut self, operand: Operand) -> &mut Byte {
         use RegisterAddressingMode::*;
 
@@ -603,7 +603,7 @@ impl Cpu {
     // }
 
     /// Check if an address is in console I/O space and handle it
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     pub(super) fn is_console_io(&self, address: Address<Word>) -> bool {
         use devices::MmioDevice;
         self.console.handles_word_address(address)
@@ -688,14 +688,14 @@ impl Cpu {
     }
 
     /// Read from console register (for MMIO)
-    #[allow(dead_code)]
+    #[cfg_attr(not(test), expect(dead_code))]
     pub(super) fn read_console(&mut self, address: Address<Word>) -> Word {
         use devices::MmioDevice;
         self.console.read_word(address)
     }
 
     /// Write to console register (for MMIO)
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     pub(super) fn write_console(&mut self, address: Address<Word>, value: Word) {
         use devices::MmioDevice;
         self.console.write_word(address, value);
@@ -703,7 +703,7 @@ impl Cpu {
 
     /// Get the memory address for an operand (if applicable)
     /// Returns None for register-direct mode
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     pub(super) fn get_operand_address(&mut self, operand: Operand) -> Option<Address<Word>> {
         use RegisterAddressingMode::*;
 
