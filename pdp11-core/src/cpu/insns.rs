@@ -56,17 +56,21 @@ pub enum Instruction {
     Rolb(Operand), // Rotate Left Byte
     Asrb(Operand), // Arithmetic Shift Right Byte
     // Double operand byte instructions
-    Movb(Operand, Operand), // Move Byte
-    Cmpb(Operand, Operand), // Compare Byte
-    Bitb(Operand, Operand), // Bit Test Byte
-    Bicb(Operand, Operand), // Bit Clear Byte
-    Bisb(Operand, Operand), // Bit Set Byte
-    Jsr(Register, Operand), // Jump to Subroutine
-    Rts(Register),          // Return from Subroutine
-    Rti,                    // Return from Interrupt
-    Xor(Register, Operand), // Exclusive OR
-    Div(Operand, Register), // Divide
-    Iot,                    // I/O Trap
+    Movb(Operand, Operand),  // Move Byte
+    Cmpb(Operand, Operand),  // Compare Byte
+    Bitb(Operand, Operand),  // Bit Test Byte
+    Bicb(Operand, Operand),  // Bit Clear Byte
+    Bisb(Operand, Operand),  // Bit Set Byte
+    Jsr(Register, Operand),  // Jump to Subroutine
+    Rts(Register),           // Return from Subroutine
+    Rti,                     // Return from Interrupt
+    Xor(Register, Operand),  // Exclusive OR
+    Mul(Operand, Register),  // Multiply
+    Div(Operand, Register),  // Divide
+    Ash(Operand, Register),  // Arithmetic Shift
+    Ashc(Operand, Register), // Arithmetic Shift Combined
+    Sob(Register, Offset),   // Subtract One and Branch
+    Iot,                     // I/O Trap
     // PSW flag manipulation instructions
     Nop, // No Operation
     Clc, // Clear Carry
@@ -292,6 +296,30 @@ impl Instruction {
         Self::Div(src, register)
     }
 
+    fn mul(opcode: u16) -> Self {
+        let register = Register::from((opcode >> 6) & 0o7);
+        let src = Operand::from_0_5(opcode);
+        Self::Mul(src, register)
+    }
+
+    fn ash(opcode: u16) -> Self {
+        let register = Register::from((opcode >> 6) & 0o7);
+        let src = Operand::from_0_5(opcode);
+        Self::Ash(src, register)
+    }
+
+    fn ashc(opcode: u16) -> Self {
+        let register = Register::from((opcode >> 6) & 0o7);
+        let src = Operand::from_0_5(opcode);
+        Self::Ashc(src, register)
+    }
+
+    fn sob(opcode: u16) -> Self {
+        let register = Register::from((opcode >> 6) & 0o7);
+        let offset = Offset((opcode & 0o77) as i8);
+        Self::Sob(register, offset)
+    }
+
     fn iot() -> Self {
         Self::Iot
     }
@@ -439,7 +467,11 @@ impl Instruction {
             Rts(register) => format!("RTS\t{register}"),
             Rti => "RTI".into(),
             Xor(register, dst) => format!("XOR\t{register}, {dst}"),
+            Mul(src, register) => format!("MUL\t{src}, {register}"),
             Div(src, register) => format!("DIV\t{src}, {register}"),
+            Ash(src, register) => format!("ASH\t{src}, {register}"),
+            Ashc(src, register) => format!("ASHC\t{src}, {register}"),
+            Sob(register, offset) => format!("SOB\t{register}, {offset}"),
             Iot => "IOT".into(),
             Nop => "NOP".into(),
             Clc => "CLC".into(),
@@ -522,8 +554,12 @@ impl From<Word> for Instruction {
             opcode @ 0o004000..=0o004777 => Self::jsr(opcode),
             opcode @ 0o000200..=0o000207 => Self::rts(opcode),
             0o000002 => Self::rti(),
-            opcode @ 0o074000..=0o074777 => Self::xor(opcode),
+            opcode @ 0o070000..=0o070777 => Self::mul(opcode),
             opcode @ 0o071000..=0o071777 => Self::div(opcode),
+            opcode @ 0o072000..=0o072777 => Self::ash(opcode),
+            opcode @ 0o073000..=0o073777 => Self::ashc(opcode),
+            opcode @ 0o074000..=0o074777 => Self::xor(opcode),
+            opcode @ 0o077000..=0o077777 => Self::sob(opcode),
             0o000004 => Self::iot(),
             0o000240 => Nop,
             0o000241 => Clc,

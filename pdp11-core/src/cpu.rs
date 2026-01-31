@@ -247,7 +247,11 @@ impl Cpu {
             Rts(register) => self.rts(register),
             Rti => self.rti(),
             Xor(register, dst) => self.xor(register, dst),
+            Mul(src, register) => self.mul(src, register),
             Div(src, register) => self.div(src, register),
+            Ash(src, register) => self.ash(src, register),
+            Ashc(src, register) => self.ashc(src, register),
+            Sob(register, offset) => self.sob(register, offset),
             Iot => self.iot(),
             Nop => self.nop(),
             Clc => self.clc(),
@@ -689,18 +693,18 @@ impl Cpu {
 
         let quotient = dividend / divisor;
         let remainder = dividend % divisor;
-        
+
         // Check for overflow (quotient doesn't fit in 16 bits)
         if !(-32768..=32767).contains(&quotient) {
             self.psw[V] = true;
             self.psw[C] = false;
             return;
         }
-        
+
         // Store results
         self.registers[register] = Word::from(quotient as i16 as u16);
         self.registers[reg_next] = Word::from(remainder as i16 as u16);
-        
+
         // Set flags
         self.psw[N] = (quotient as i16) < 0;
         self.psw[Z] = quotient == 0;
@@ -708,10 +712,151 @@ impl Cpu {
         self.psw[C] = false;
     }
 
+    fn mul(&mut self, src: Operand, register: Register) {
+        // MUL: Multiply
+        // Multiply register by src (both 16-bit signed)
+        // Result is 32-bit in register pair R|R+1
+
+        let multiplicand = self.registers[register].as_u16() as i16 as i32;
+        let multiplier = self.read_word(src).as_u16() as i16 as i32;
+        let product = multiplicand.wrapping_mul(multiplier);
+
+        // Store in register pair
+        let reg_next = Register::from(((register as u8 + 1) & 0o7) as u16);
+        self.registers[register] = Word::from((product >> 16) as i16 as u16);
+        self.registers[reg_next] = Word::from(product as i16 as u16);
+
+        // Set flags
+        self.psw[N] = product < 0;
+        self.psw[Z] = product == 0;
+        self.psw[V] = false;
+        // C is set if the high-order word is non-zero (result doesn't fit in 16 bits)
+        self.psw[C] = (product >> 16) != 0 && (product >> 16) != -1;
+    }
+
+    fn ash(&mut self, src: Operand, register: Register) {
+        // ASH: Arithmetic Shift
+        // Shift register left (positive count) or right (negative count)
+        // Count is from bits 0-5 of src (6-bit signed, -32 to +31)
+
+        let shift_count = (self.read_word(src).as_u16() & 0o77) as i8 as i32;
+        let value = self.registers[register].as_u16() as i16 as i32;
+
+        let result = if shift_count > 0 {
+            // Left shift
+            let shift = shift_count.min(31);
+            value << shift
+        } else if shift_count < 0 {
+            // Right shift (arithmetic - sign extends)
+            let shift = (-shift_count).min(31);
+            value >> shift
+        } else {
+            value
+        };
+
+        self.registers[register] = Word::from(result as i16 as u16);
+
+        // Set flags
+        self.psw[N] = (result as i16) < 0;
+        self.psw[Z] = (result as i16) == 0;
+        // V is set if sign changed during shift
+        self.psw[V] = ((value as i16) < 0) != ((result as i16) < 0);
+        // C is set if last bit shifted out was 1
+        self.psw[C] = if shift_count > 0 {
+            // Left shift - check bit that was shifted out
+            let shift = shift_count.min(16);
+            if shift > 0 {
+                let bit_pos = 16 - shift;
+                (value >> bit_pos) & 1 != 0
+            } else {
+                false
+            }
+        } else if shift_count < 0 {
+            // Right shift - check bit that was shifted out
+            let shift = (-shift_count).min(16);
+            if shift > 0 {
+                (value >> (shift - 1)) & 1 != 0
+            } else {
+                false
+            }
+        } else {
+            false
+        };
+    }
+
+    fn ashc(&mut self, src: Operand, register: Register) {
+        // ASHC: Arithmetic Shift Combined
+        // Like ASH but shifts 32-bit register pair R|R+1
+
+        let shift_count = (self.read_word(src).as_u16() & 0o77) as i8 as i64;
+
+        // Build 32-bit value from register pair
+        let reg_next = Register::from(((register as u8 + 1) & 0o7) as u16);
+        let high = self.registers[register].as_u16() as i16 as i32;
+        let low = self.registers[reg_next].as_u16() as i32;
+        let value = ((high as i64) << 16) | (low as i64 & 0xFFFF);
+
+        let result = if shift_count > 0 {
+            // Left shift
+            let shift = shift_count.min(31);
+            value << shift
+        } else if shift_count < 0 {
+            // Right shift (arithmetic - sign extends)
+            let shift = (-shift_count).min(31);
+            value >> shift
+        } else {
+            value
+        };
+
+        // Store back to register pair
+        self.registers[register] = Word::from((result >> 16) as i16 as u16);
+        self.registers[reg_next] = Word::from(result as i16 as u16);
+
+        // Set flags
+        self.psw[N] = result < 0;
+        self.psw[Z] = result == 0;
+        // V is set if sign changed during shift
+        self.psw[V] = (value < 0) != (result < 0);
+        // C is set if last bit shifted out was 1
+        self.psw[C] = if shift_count > 0 {
+            let shift = shift_count.min(32);
+            if shift > 0 {
+                let bit_pos = 32 - shift;
+                (value >> bit_pos) & 1 != 0
+            } else {
+                false
+            }
+        } else if shift_count < 0 {
+            let shift = (-shift_count).min(32);
+            if shift > 0 {
+                (value >> (shift - 1)) & 1 != 0
+            } else {
+                false
+            }
+        } else {
+            false
+        };
+    }
+
+    fn sob(&mut self, register: Register, offset: Offset) {
+        // SOB: Subtract One and Branch
+        // Decrement register, branch backward if not zero
+        // Offset is in words (multiply by 2 for byte offset)
+
+        self.registers[register] -= Word::from(1u16);
+
+        if !self.registers[register].is_zero() {
+            // Branch backward by offset words
+            let byte_offset = (offset.0 as i16) * 2;
+            let current_pc = self.registers[PC].as_u16() as i16;
+            self.registers[PC] = Word::from((current_pc - byte_offset) as u16);
+        }
+    }
+
     fn iot(&mut self) {
         // IOT: I/O Trap
         // Trap to vector 020 (octal)
-        tracing::warn!("IOT instruction not fully implemented - would trap to vector 020");
+        tracing::debug!("IOT instruction not fully implemented - would trap to vector 020");
         // For now, just log it. Full implementation would:
         // 1. Push PSW to stack
         // 2. Push PC to stack
